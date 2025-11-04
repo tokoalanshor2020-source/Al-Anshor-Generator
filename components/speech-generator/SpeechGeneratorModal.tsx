@@ -268,12 +268,11 @@ export const SpeechGeneratorModal: React.FC<SpeechGeneratorModalProps> = ({ isOp
     return (
         <div className="fixed inset-0 bg-base-100 z-50 flex flex-col font-sans" role="dialog" aria-modal="true">
             <header className="flex-shrink-0 bg-base-200/80 backdrop-blur-sm border-b border-base-300 w-full z-10">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-20">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center h-20">
                     <div className="flex items-center gap-3">
                         <SpeakerWaveIcon className="h-6 w-6 text-blue-400" />
                         <h2 className="text-xl font-bold text-blue-400">{t('speechGenerator.title') as string}</h2>
                     </div>
-                     <button onClick={onClose} className="p-1 text-gray-400 hover:text-white"><XCircleIcon className="h-6 w-6" /></button>
                 </div>
             </header>
             
