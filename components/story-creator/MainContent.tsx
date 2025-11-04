@@ -7,15 +7,8 @@ import type { Character, DirectingSettings, StoryboardScene, PublishingKitData, 
 
 type ActiveTab = 'editor' | 'storyboard' | 'publishingKit';
 
+// FIX: Removed unused API key props to resolve type errors in parent and child components.
 interface MainContentProps {
-    allStoryApiKeys: string[];
-    activeStoryApiKey: string | null;
-    onStoryKeyUpdate: (key: string) => void;
-
-    allVideoApiKeys: string[];
-    activeVideoApiKey: string | null;
-    onVideoKeyUpdate: (key: string) => void;
-
     logline: string;
     setLogline: (value: string) => void;
     scenario: string;
@@ -28,7 +21,6 @@ interface MainContentProps {
     storyboard: StoryboardScene[];
     error: string | null;
     onProceedToVideo: (prompt: string, image?: { base64: string, mimeType: string }) => void;
-    activeApiKey: string | null;
     characters: Character[];
     directingSettings: DirectingSettings;
     setDirectingSettings: React.Dispatch<React.SetStateAction<DirectingSettings>>;
@@ -67,18 +59,14 @@ export const MainContent: React.FC<MainContentProps> = ({ activeTab, setActiveTa
             </div>
             
             {activeTab === 'editor' && <ScriptEditor {...props} />}
+            {/* FIX: Removed props that are not defined on StoryboardProps. */}
             {activeTab === 'storyboard' && <Storyboard
                 {...props}
-                allKeys={props.allStoryApiKeys}
-                activeKey={props.activeStoryApiKey}
-                onKeyUpdate={props.onStoryKeyUpdate}
             />}
+            {/* FIX: Removed props that are not defined on PublishingKitViewProps. */}
             {activeTab === 'publishingKit' && publishingKit && <PublishingKitView
                 kitData={publishingKit}
                 {...props}
-                allKeys={props.allVideoApiKeys}
-                activeKey={props.activeVideoApiKey}
-                onKeyUpdate={props.onVideoKeyUpdate}
             />}
         </main>
     );

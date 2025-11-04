@@ -129,7 +129,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
                     onClose={() => setIsReferenceIdeaModalOpen(false)}
                     onProceedToVideo={props.onProceedToVideo}
                     referenceIdeaState={props.referenceIdeaState}
-                    setReferenceIdeaState={props.referenceIdeaState}
+                    // FIX: Pass the setter function `setReferenceIdeaState` instead of the state object.
+                    setReferenceIdeaState={props.setReferenceIdeaState}
                 />
             )}
         </div>
