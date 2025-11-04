@@ -169,6 +169,9 @@ ${character.keyFeatures.map(f => `*   ${f}`).join('\n')}
     const prompt = `
 You are a master prompt engineer for an advanced text-to-video AI. Your task is to generate a highly detailed, structured video prompt based on a scene from a storyboard. The output must follow the provided 8-part format precisely.
 
+**CRITICAL SAFETY & COMPLIANCE INSTRUCTION:**
+You must generate prompts that are safe, family-friendly, and strictly adhere to all community guidelines and API usage policies. Avoid any descriptions of violence, conflict, weapons, or any sensitive or harmful content. Ensure the prompt is "safe-to-generate" and will not be blocked by safety filters. All content must be appropriate for a general audience.
+
 **CRITICAL STYLE INSTRUCTION:**
 Analyze the "SUBJECT & DETAILS" section for each character. If a character is described as a "toy" or "figure", the entire scene must be rendered as a hyper-realistic depiction of a toy in a realistic or diorama setting. If the character is described as a "photorealistic digital double" or a real person/animal, the entire scene must be rendered with full realism, as if it were a live-action film. Your descriptions in all sections must reflect this core style.
 
@@ -257,6 +260,9 @@ Action in Scene: ${action.action_description}
 
     const prompt = `
 You are a master prompt engineer for the advanced VEO text-to-video model. Your task is to create a "Cinematic Prompt".
+
+**CRITICAL SAFETY & COMPLIANCE INSTRUCTION:**
+You must generate prompts that are safe, family-friendly, and strictly adhere to all community guidelines and API usage policies. Avoid any descriptions of violence, conflict, weapons, or any sensitive or harmful content. Ensure the prompt is "safe-to-generate" and will not be blocked by safety filters. All content must be appropriate for a general audience.
 
 **CRITICAL STYLE INSTRUCTION:**
 Analyze the "Character Details & Actions" provided below. If a character is described as a "toy figure", you must write the cinematic paragraph as if you are describing a hyper-realistic video of a toy. If a character is described as "photorealistic" or a real entity, you must write the cinematic paragraph as a live-action film scene. All visual descriptions must match this style.
