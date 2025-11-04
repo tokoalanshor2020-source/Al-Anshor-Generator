@@ -144,13 +144,19 @@ export const generateBlueprintPrompt = async (
     .map(action => {
         const character = characters.find(c => c.consistency_key === action.consistency_key);
         if (!character) return null;
-        // This creates a detailed block for each character in the scene.
+
+        const isToy = character.material?.toLowerCase().includes('toy') || character.material?.toLowerCase().includes('pvc') || character.scale_and_size?.toLowerCase().includes('scale');
+        
+        const characterDescription = isToy
+            ? `A meticulously crafted toy figure of a ${character.material}.`
+            : `A photorealistic digital double of ${character.name}.`;
+
         return `
 //** 2. SUBJECT & DETAILS: ${character.name} **//
 SUBJECT:
 **Character ID:** ${character.name} (${character.brandName} ${character.modelName})
 **Consistency Key:** ${character.consistency_key}
-**Description:** A meticulously crafted toy figure of a ${character.material}. Its design language is '${character.designLanguage}'. ${character.physical_details || ''} Its personality is ${character.character_personality || 'not specified'}.
+**Description:** ${characterDescription} Its design language is '${character.designLanguage}'. ${character.physical_details || ''} Its personality is ${character.character_personality || 'not specified'}.
 **Scale & Size:** ${character.scale_and_size || 'Not specified.'}
 **Key Visual Features:**
 ${character.keyFeatures.map(f => `*   ${f}`).join('\n')}
@@ -162,6 +168,9 @@ ${character.keyFeatures.map(f => `*   ${f}`).join('\n')}
 
     const prompt = `
 You are a master prompt engineer for an advanced text-to-video AI. Your task is to generate a highly detailed, structured video prompt based on a scene from a storyboard. The output must follow the provided 8-part format precisely.
+
+**CRITICAL STYLE INSTRUCTION:**
+Analyze the "SUBJECT & DETAILS" section for each character. If a character is described as a "toy" or "figure", the entire scene must be rendered as a hyper-realistic depiction of a toy in a realistic or diorama setting. If the character is described as a "photorealistic digital double" or a real person/animal, the entire scene must be rendered with full realism, as if it were a live-action film. Your descriptions in all sections must reflect this core style.
 
 **Directing Notes (Meja Bermain Settings):**
 - Scene Style: ${settings.sceneStyleSet === 'custom_scene' ? settings.customSceneStyle : settings.sceneStyleSet.replace(/_/g, ' ')}
@@ -233,9 +242,14 @@ export const generateCinematicPrompt = async (
         const character = characters.find(c => c.consistency_key === action.consistency_key);
         if (!character) return `The character ${action.character_name} (${action.consistency_key}) is performing the action: ${action.action_description}.`;
         
+        const isToy = character.material?.toLowerCase().includes('toy') || character.material?.toLowerCase().includes('pvc') || character.scale_and_size?.toLowerCase().includes('scale');
+        const characterDescription = isToy
+            ? `A toy figure of a ${character.material}.`
+            : `A photorealistic depiction of ${character.name}.`;
+
         return `
 Character: ${character.name} (${character.consistency_key})
-Full Description: A toy figure of a ${character.material}. Key visual features include ${character.keyFeatures.join(', ')}. ${character.physical_details || ''}. Its personality is ${character.character_personality || 'not specified'}.
+Full Description: ${characterDescription} Key visual features include ${character.keyFeatures.join(', ')}. ${character.physical_details || ''}. Its personality is ${character.character_personality || 'not specified'}.
 Action in Scene: ${action.action_description}
 `;
     })
@@ -243,6 +257,9 @@ Action in Scene: ${action.action_description}
 
     const prompt = `
 You are a master prompt engineer for the advanced VEO text-to-video model. Your task is to create a "Cinematic Prompt".
+
+**CRITICAL STYLE INSTRUCTION:**
+Analyze the "Character Details & Actions" provided below. If a character is described as a "toy figure", you must write the cinematic paragraph as if you are describing a hyper-realistic video of a toy. If a character is described as "photorealistic" or a real entity, you must write the cinematic paragraph as a live-action film scene. All visual descriptions must match this style.
 
 **Creative Input:**
 - **Scene Summary:** ${scene.scene_summary}
@@ -288,7 +305,7 @@ export const generatePublishingKit = async (
     }
 ): Promise<PublishingKitData> => {
      const prompt = `
-You are a YouTube content strategist and marketing expert. Based on the provided storyboard, generate a complete publishing kit.
+You are a YouTube content strategist, SEO specialist, and viral marketing expert. Your task is to generate a complete and highly optimized publishing kit for a children's toy video based on the provided storyboard.
 
 **Story Title:** ${logline}
 **Number of Scenes:** ${storyboard.length}
@@ -296,19 +313,40 @@ You are a YouTube content strategist and marketing expert. Based on the provided
 **Main Characters:** ${characters.map(c => c.name).join(', ')}
 
 **Task:**
-Generate a comprehensive publishing kit in JSON format. You MUST provide details for both Indonesian (id) and English (en). The JSON object must contain the following keys:
-- "youtube_title_id", "youtube_title_en"
-- "youtube_description_id", "youtube_description_en" (include timestamps for each scene)
-- "youtube_tags_id", "youtube_tags_en" (an array of relevant tags)
-- "affiliate_links": { "primary_character_template": "URL_TEMPLATE_FOR_{characterName}", "all_characters_template": "URL_TEMPLATE_FOR_{characterName1},{characterName2}" }
-- "thumbnail_concepts": An array of 2 concepts. Each concept must have:
-    - "concept_title_id", "concept_title_en"
-    - "concept_description_id", "concept_description_en"
-    - "image_prompt": A detailed visual prompt for a text-to-image model to create the thumbnail.
-    - "advanced_prompt_json_id", "advanced_prompt_json_en": A JSON string with keys "visual_prompt", "composition_notes", "lighting_style".
-    - "concept_caption_id", "concept_caption_en": The text overlay for the thumbnail.
+Generate a comprehensive publishing kit in a single, valid JSON object. You MUST provide details for both Indonesian (id) and English (en). The JSON object must strictly adhere to the following keys and instructions:
 
-Output ONLY the valid JSON object.
+1.  **"youtube_title_id", "youtube_title_en"**:
+    *   Create a compelling, click-worthy YouTube title.
+    *   The title MUST be under 100 characters.
+    *   It MUST start with a strong hook (e.g., a question, a shocking statement) to grab attention.
+    *   It MUST contain strong SEO keywords related to the story, characters, and theme.
+
+2.  **"youtube_description_id", "youtube_description_en"**:
+    *   Write a detailed, SEO-optimized description.
+    *   The first paragraph (2-3 sentences) must be a captivating summary including the most important keywords.
+    *   After the summary, add a list of 5-7 SEO keywords.
+    *   Include timestamps for each scene from the summary.
+    *   Conclude with a block of 3-5 relevant hashtags (e.g., #ToyAdventure #StopMotion #KidsStory).
+
+3.  **"youtube_tags_id", "youtube_tags_en"**:
+    *   Generate an extensive list of relevant YouTube tags.
+    *   The total combined length of the tags should be maximized to be as close to the 400-500 character limit as possible.
+    *   Include a mix of broad (e.g., "kids animation") and specific tags (e.g., character names, specific events from the story).
+
+4.  **"affiliate_links"**:
+    *   Use this exact structure: \`{ "primary_character_template": "URL_TEMPLATE_FOR_{characterName}", "all_characters_template": "URL_TEMPLATE_FOR_{characterName1},{characterName2}" }\`
+
+5.  **"thumbnail_concepts"**:
+    *   Create an array of exactly 2 concepts.
+    *   Each concept must describe a dynamic, high-action, or emotionally charged moment from the story, perfect for a thumbnail.
+    *   For each concept, provide:
+        *   **"concept_title_id", "concept_title_en"**: A short title for the concept.
+        *   **"concept_description_id", "concept_description_en"**: A brief description.
+        *   **"image_prompt"**: A detailed visual prompt for an image model, focusing on the character's expression and the scene's drama.
+        *   **"advanced_prompt_json_id", "advanced_prompt_json_en"**: A JSON string with keys "visual_prompt", "composition_notes", "lighting_style".
+        *   **"concept_caption_id", "concept_caption_en"**: This is the text overlay for the thumbnail. It MUST be a short, powerful, and intriguing hook or question. It should be a complete thought, not a truncated sentence. For example: "CAN THEY ESCAPE?!", "THEIR BIGGEST CHALLENGE!", "SECRET REVEALED!".
+
+Output ONLY the valid JSON object and nothing else.
 `;
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response: GenerateContentResponse = await ai.models.generateContent({
@@ -452,22 +490,27 @@ export const developCharacter = async (
     { idea, referenceFiles }: { idea: string; referenceFiles: { base64: string, mimeType: string }[] }
 ): Promise<any> => {
      const prompt = `
-You are a toy branding expert and character designer. Analyze the provided user idea and reference files to develop a detailed character profile.
+You are a highly skilled character analyst. Your primary goal is to analyze the provided user idea and reference files to develop a detailed character profile.
 
-**User Idea:** ${idea || 'No specific idea provided.'}
+**CRITICAL FIRST STEP: Analyze Reference Style**
+First, carefully examine the style of the provided reference files.
+- **If the references are photorealistic (e.g., a photo of a real person, animal, or object):** You must act as a digital character artist creating a realistic digital twin. ALL details you generate MUST be based strictly on the visual evidence. Do NOT invent toy-like or cartoonish features. The goal is realism and faithfulness to the reference.
+- **If the references are of a toy, cartoon, or animation:** You can act as a toy branding expert. Develop the character profile based on the existing design, maintaining its established style.
+
+**User Idea/Notes:** ${idea || 'No specific idea provided.'}
 **Number of References:** ${referenceFiles.length}
 
 **Task:**
-Generate a JSON object with the following details for the toy character. Be creative and fill in the details logically based on the input.
-- "brand_name": A fictional, catchy brand name.
-- "model_name": The specific model name of the toy.
-- "consistency_key": A unique, short, uppercase token for prompt consistency (e.g., "RCRR_01").
-- "material": The primary material of the toy (e.g., "Die-cast metal", "ABS plastic").
-- "design_language": A description of the brand's design style.
-- "key_features": An array of 3-5 key visual features (Visual DNA).
-- "character_personality": A brief description of the character's traits.
-- "physical_details": Nuanced details about its appearance.
-- "scale_and_size": The toy's scale and approximate size.
+Based on your analysis, generate a JSON object with the following details for the character.
+- "brand_name": A fictional brand name. If the reference is realistic, this could be a project name (e.g., "Hyperion Digital Humans").
+- "model_name": The specific name for the character or model.
+- "consistency_key": A unique, short, uppercase token for prompt consistency (e.g., "STL_CHR_01").
+- "material": The primary material. If it's a realistic human, this could be "Photorealistic digital human with skin, hair, and fabric shaders". If it's a toy, describe its material (e.g., "Premium PVC").
+- "design_language": A description of the character's design style (e.g., "Contemporary chic and relatable", "Gritty sci-fi soldier").
+- "key_features": An array of 3-5 key visual features (Visual DNA) taken directly from the reference. Be very specific.
+- "character_personality": A brief description of the character's perceived traits based on their expression and appearance.
+- "physical_details": Nuanced details about their appearance (e.g., "Small scar above the left eyebrow," "Slightly worn paint on the fender").
+- "scale_and_size": The character's scale and approximate size (e.g., "Life-sized digital double," "1:64 scale die-cast model").
 
 Output ONLY the valid JSON object.
 `;
