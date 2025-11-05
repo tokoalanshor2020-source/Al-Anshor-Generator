@@ -94,7 +94,7 @@ export default function App() {
         prompt: { video: '', audio: '' },
         imageFile: null,
         aspectRatio: '9:16',
-        enableSound: true,
+        enableSound: false,
         resolution: '1080p',
     };
   });

@@ -35,10 +35,18 @@ export const generateVideo = async ({ options }: { options: GeneratorOptions }):
         `- Sound: ${options.enableSound ? 'enabled' : 'disabled'}`
     ];
 
-    const augmentedPrompt = `
+    let augmentedPrompt = `
       ${options.prompt.video}
+    `;
+
+    if (options.enableSound) {
+      augmentedPrompt += `
       ---
       ${options.prompt.audio}
+      `;
+    }
+
+    augmentedPrompt += `
       ---
       Video generation parameters:
       ${videoParams.join('\n')}
