@@ -3,7 +3,7 @@ import { useLocalization } from '../../i18n';
 import { MagicWandIcon } from '../icons/MagicWandIcon';
 import { RocketIcon } from '../icons/RocketIcon';
 import { DirectorBridgeModal } from './DirectorBridgeModal';
-import type { Character, DirectingSettings, ReferenceIdeaState, AffiliateCreatorState } from '../../types';
+import type { Character, DirectingSettings, ReferenceIdeaState, AffiliateCreatorState, VideoGeneratorOrigin } from '../../types';
 import { FilmIcon } from '../icons/FilmIcon';
 import { ReferenceIdeaModal } from './ReferenceIdeaModal';
 import { ShoppingCartIcon } from '../icons/ShoppingCartIcon';
@@ -23,7 +23,7 @@ interface ScriptEditorProps {
     characters: Character[];
     directingSettings: DirectingSettings;
     setDirectingSettings: React.Dispatch<React.SetStateAction<DirectingSettings>>;
-    onProceedToVideo: (prompt: string, image?: { base64: string, mimeType: string }) => void;
+    onProceedToVideo: (prompt: string, image?: { base64: string; mimeType: string }, origin?: VideoGeneratorOrigin) => void;
     referenceIdeaState: ReferenceIdeaState;
     setReferenceIdeaState: React.Dispatch<React.SetStateAction<ReferenceIdeaState>>;
     isReferenceIdeaModalOpen: boolean;
@@ -95,7 +95,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
                     <h3 className="text-lg font-bold text-cyan-400">{t('storyCreator.haveIdea') as string}</h3>
                     <p className="text-gray-400 text-sm mb-4">{t('storyCreator.ideaDescriptionDirect') as string}</p>
                     <button 
-                        onClick={() => props.onProceedToVideo('')}
+                        onClick={() => props.onProceedToVideo('', undefined, 'direct')}
                         className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <RocketIcon />

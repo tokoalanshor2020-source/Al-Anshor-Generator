@@ -3,11 +3,11 @@ import { Sidebar } from './Sidebar';
 import { MainContent } from './MainContent';
 import { ConfirmationModal } from '../ConfirmationModal';
 import { useLocalization } from '../../i18n';
-import type { Character, StoryboardScene, DirectingSettings, PublishingKitData, ActiveTab, ReferenceIdeaState, AffiliateCreatorState } from '../../types';
+import type { Character, StoryboardScene, DirectingSettings, PublishingKitData, ActiveTab, ReferenceIdeaState, AffiliateCreatorState, VideoGeneratorOrigin } from '../../types';
 import { generateStoryboard, generatePublishingKit } from '../../services/storyCreatorService';
 
 interface StoryCreatorProps {
-    onProceedToVideo: (prompt: string, image?: { base64: string, mimeType: string }) => void;
+    onProceedToVideo: (prompt: string, image?: { base64: string, mimeType: string }, origin?: VideoGeneratorOrigin) => void;
     
     // State lifted to App.tsx
     characters: Character[];

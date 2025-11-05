@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Character, DirectingSettings, StoryboardScene } from '../../types';
+import type { Character, DirectingSettings, StoryboardScene, VideoGeneratorOrigin } from '../../types';
 import { useLocalization } from '../../i18n';
 import { CameraReelsIcon } from '../icons/CameraReelsIcon';
 import { generateBlueprintPrompt, generateCinematicPrompt } from '../../services/storyCreatorService';
@@ -8,7 +8,7 @@ interface StoryboardProps {
     isGenerating: boolean;
     storyboard: StoryboardScene[];
     error: string | null;
-    onProceedToVideo: (prompt: string) => void;
+    onProceedToVideo: (prompt: string, data?: { base64: string; mimeType: string }, origin?: VideoGeneratorOrigin) => void;
     characters: Character[];
     directingSettings: DirectingSettings;
     onUpdateScene: (sceneIndex: number, updatedPrompts: Partial<Pick<StoryboardScene, 'blueprintPrompt' | 'cinematicPrompt'>>) => void;
@@ -17,7 +17,7 @@ interface StoryboardProps {
 interface SceneCardProps {
     scene: StoryboardScene;
     index: number;
-    onProceedToVideo: (prompt: string) => void;
+    onProceedToVideo: (prompt: string, data?: { base64: string; mimeType: string }, origin?: VideoGeneratorOrigin) => void;
     characters: Character[];
     directingSettings: DirectingSettings;
     onUpdateScene: (sceneIndex: number, updatedPrompts: Partial<Pick<StoryboardScene, 'blueprintPrompt' | 'cinematicPrompt'>>) => void;
@@ -26,7 +26,7 @@ interface SceneCardProps {
 const PromptDisplay: React.FC<{
     title: string;
     content: string;
-    onProceedToVideo: (prompt: string) => void;
+    onProceedToVideo: (prompt: string, data?: { base64: string; mimeType: string }, origin?: VideoGeneratorOrigin) => void;
 }> = ({ title, content, onProceedToVideo }) => {
     const { t } = useLocalization();
     const isError = content.toLowerCase().startsWith('error');
@@ -42,7 +42,7 @@ const PromptDisplay: React.FC<{
             {!isError && (
                 <div className="mt-3 flex-shrink-0">
                     <button
-                        onClick={() => onProceedToVideo(content)}
+                        onClick={() => onProceedToVideo(content, undefined, 'storyboard')}
                         className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors"
                     >
                         {/* FIX: Cast result of t() to string */}

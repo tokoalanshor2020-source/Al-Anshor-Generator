@@ -1,7 +1,12 @@
 // types.ts
 
+export type VideoGeneratorOrigin = 'storyboard' | 'affiliate' | 'reference' | 'direct';
+
 export interface GeneratorOptions {
-  prompt: string;
+  prompt: {
+    video: string;
+    audio: string;
+  };
   image?: {
     base64: string;
     mimeType: string;
@@ -13,7 +18,10 @@ export interface GeneratorOptions {
 
 // Add VideoGeneratorState to persist form state
 export interface VideoGeneratorState {
-  prompt: string;
+  prompt: {
+    video: string;
+    audio: string;
+  };
   // Store only serializable data for localStorage
   imageFile: { base64: string; mimeType: string; } | null;
   aspectRatio: '16:9' | '9:16' | '1:1' | '4:3' | '3:4';

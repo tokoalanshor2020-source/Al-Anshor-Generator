@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useLocalization } from '../../i18n';
-import type { GeneratedPrompts, ReferenceFile, ReferenceIdeaState, StoredReferenceFile } from '../../types';
+import type { GeneratedPrompts, ReferenceFile, ReferenceIdeaState, StoredReferenceFile, VideoGeneratorOrigin } from '../../types';
 import { analyzeReferences } from '../../services/storyCreatorService';
 import { PlusIcon } from '../icons/PlusIcon';
 import { TrashIcon } from '../icons/TrashIcon';
@@ -10,7 +10,7 @@ import { ChevronRightIcon } from '../icons/ChevronRightIcon';
 interface ReferenceIdeaModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onProceedToVideo: (prompt: string) => void;
+    onProceedToVideo: (prompt: string, data?: { base64: string; mimeType: string }, origin?: VideoGeneratorOrigin) => void;
     referenceIdeaState: ReferenceIdeaState;
     setReferenceIdeaState: React.Dispatch<React.SetStateAction<ReferenceIdeaState>>;
 }
@@ -322,7 +322,7 @@ export const ReferenceIdeaModal: React.FC<ReferenceIdeaModalProps> = ({ isOpen, 
                                         <CopyButton textToCopy={results.simple_prompt} />
                                     </div>
                                     <button 
-                                        onClick={() => onProceedToVideo(results.simple_prompt)}
+                                        onClick={() => onProceedToVideo(results.simple_prompt, undefined, 'reference')}
                                         className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
                                     >
                                         {t('referenceIdeaModal.useSimplePromptButton') as string}
@@ -343,7 +343,7 @@ export const ReferenceIdeaModal: React.FC<ReferenceIdeaModalProps> = ({ isOpen, 
                                         <CopyButton textToCopy={results.json_prompt} />
                                     </div>
                                     <button 
-                                        onClick={() => onProceedToVideo(results.json_prompt)}
+                                        onClick={() => onProceedToVideo(results.json_prompt, undefined, 'reference')}
                                         className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
                                     >
                                          {t('referenceIdeaModal.useJsonPromptButton') as string}

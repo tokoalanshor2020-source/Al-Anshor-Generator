@@ -1,6 +1,6 @@
 // FIX: Implemented the full VideoGeneratorForm component to resolve module not found and other related errors.
 import React, { useState, useEffect, DragEvent } from 'react';
-import type { GeneratorOptions, ImageFile, Character, VideoGeneratorState } from '../types';
+import type { GeneratorOptions, ImageFile, Character, VideoGeneratorState, VideoGeneratorOrigin } from '../types';
 import { useLocalization } from '../i18n';
 import { UploadIcon } from './icons/UploadIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
@@ -12,6 +12,7 @@ interface VideoGeneratorFormProps {
   generatorState: VideoGeneratorState;
   onStateChange: React.Dispatch<React.SetStateAction<VideoGeneratorState>>;
   characters: Character[];
+  videoGeneratorOrigin: VideoGeneratorOrigin | null;
 }
 
 const MAX_IMAGE_SIZE_MB = 10;
@@ -22,6 +23,7 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
   onSubmit,
   generatorState,
   onStateChange,
+  videoGeneratorOrigin,
 }) => {
   const { t } = useLocalization();
   const { prompt, imageFile, aspectRatio, enableSound, resolution } = generatorState;
@@ -30,9 +32,11 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
   // Reference Image Generator State (remains local as it's a transient step)
-  const [refImgAspectRatio, setRefImgAspectRatio] = useState<GeneratorOptions['aspectRatio']>('16:9');
+  const [refImgAspectRatio, setRefImgAspectRatio] = useState<GeneratorOptions['aspectRatio']>('9:16');
   const [isGeneratingRefImg, setIsGeneratingRefImg] = useState(false);
   const [generatedRefImg, setGeneratedRefImg] = useState<ImageFile | null>(null);
+
+  const isDirectMode = videoGeneratorOrigin === 'direct';
 
   useEffect(() => {
     if (imageFile) {
@@ -46,7 +50,7 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prompt.trim()) {
+    if (!prompt.video.trim()) {
       alert(t('alertEnterPrompt') as string);
       return;
     }
@@ -126,7 +130,7 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
   };
 
   const handleGenerateReferenceImage = async () => {
-    if (!prompt.trim()) {
+    if (!prompt.video.trim()) {
       alert(t('alertEnterPrompt') as string);
       return;
     }
@@ -134,7 +138,7 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
     if(generatedRefImg) URL.revokeObjectURL(generatedRefImg.previewUrl);
     setGeneratedRefImg(null);
     try {
-        const result = await generateReferenceImage(prompt, refImgAspectRatio);
+        const result = await generateReferenceImage(prompt.video, refImgAspectRatio);
         const previewUrl = `data:${result.mimeType};base64,${result.base64}`;
         setGeneratedRefImg({ ...result, previewUrl });
     } catch(e) {
@@ -159,17 +163,46 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* Prompt Section */}
-      <div className="space-y-2">
-        <label htmlFor="prompt" className="block text-lg font-semibold text-gray-200">{t('promptLabel') as string}</label>
-        <textarea
-          id="prompt"
-          rows={12}
-          value={prompt}
-          onChange={(e) => onStateChange(prev => ({ ...prev, prompt: e.target.value }))}
-          placeholder={t('promptPlaceholder') as string}
-          className="w-full bg-base-300 border-gray-600 rounded-lg p-3 shadow-sm focus:ring-brand-primary focus:border-brand-primary text-gray-200 placeholder-gray-500"
-        ></textarea>
-        <p className="text-sm text-gray-500">{t('promptHint') as string}</p>
+      <div className="space-y-4">
+        {isDirectMode ? (
+            <>
+                <div>
+                    <label className="block text-lg font-semibold text-gray-200">{t('videoGenerator.videoPromptLabel') as string}</label>
+                    <textarea
+                        className="mt-2 w-full bg-base-300 border border-gray-600 rounded-lg p-3 text-gray-200 whitespace-pre-wrap font-mono text-sm h-48 focus:ring-brand-primary focus:border-brand-primary transition-colors"
+                        value={prompt.video}
+                        onChange={(e) => onStateChange(prev => ({ ...prev, prompt: { ...prev.prompt, video: e.target.value } }))}
+                        placeholder={t('promptPlaceholder') as string}
+                        aria-label="Video Prompt (Visuals)"
+                    />
+                </div>
+                <div>
+                    <label className="block text-lg font-semibold text-gray-200">{t('videoGenerator.audioPromptLabel') as string}</label>
+                    <textarea
+                        className="mt-2 w-full bg-base-300 border border-gray-600 rounded-lg p-3 text-gray-200 whitespace-pre-wrap font-mono text-sm h-32 focus:ring-brand-primary focus:border-brand-primary transition-colors"
+                        value={prompt.audio}
+                        onChange={(e) => onStateChange(prev => ({ ...prev, prompt: { ...prev.prompt, audio: e.target.value } }))}
+                        placeholder={t('audioPromptPlaceholder') as string}
+                        aria-label="Audio Prompt (Narration & Sound)"
+                    />
+                </div>
+            </>
+        ) : (
+             <>
+                <div>
+                    <label className="block text-lg font-semibold text-gray-200">{t('videoGenerator.videoPromptLabel') as string}</label>
+                    <pre className="mt-2 w-full bg-base-300 border border-gray-600 rounded-lg p-3 text-gray-300 whitespace-pre-wrap font-mono text-xs overflow-auto h-48">
+                      {prompt.video || t('promptPlaceholder') as string}
+                    </pre>
+                </div>
+                <div>
+                    <label className="block text-lg font-semibold text-gray-200">{t('videoGenerator.audioPromptLabel') as string}</label>
+                     <pre className="mt-2 w-full bg-base-300 border border-gray-600 rounded-lg p-3 text-gray-300 whitespace-pre-wrap font-mono text-xs overflow-auto h-32">
+                      {prompt.audio || t('noAudioPrompt') as string}
+                    </pre>
+                </div>
+            </>
+        )}
       </div>
 
       {/* Reference Image Generator */}
@@ -185,7 +218,7 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
                   <option value="4:3">4:3</option>
                   <option value="3:4">3:4</option>
               </select>
-              <button type="button" onClick={handleGenerateReferenceImage} disabled={isGeneratingRefImg || !prompt.trim()} className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">
+              <button type="button" onClick={handleGenerateReferenceImage} disabled={isGeneratingRefImg || !prompt.video.trim()} className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">
                   {isGeneratingRefImg ? t('videoGenerator.generatingImageButton') as string : t('videoGenerator.generateImageButton') as string}
               </button>
           </div>
@@ -230,7 +263,7 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
       <div className="space-y-6">
         <h3 className="text-lg font-semibold text-gray-200">{t('generationSettings') as string}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-end">
-          {!imageFile && (
+          
             <div>
               <label htmlFor="aspect-ratio" className="block text-sm font-medium text-gray-400">{t('aspectRatioLabel') as string}</label>
               <select id="aspect-ratio" value={aspectRatio} onChange={(e) => onStateChange(prev => ({...prev, aspectRatio: e.target.value as GeneratorOptions['aspectRatio']}))} className="mt-1 block w-full bg-base-300 border-gray-600 rounded-lg p-2 shadow-sm focus:ring-brand-primary focus:border-brand-primary text-gray-200">
@@ -241,7 +274,7 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
                 <option>3:4</option>
               </select>
             </div>
-          )}
+          
 
           <div>
             <label htmlFor="resolution" className="block text-sm font-medium text-gray-400">{t('resolutionLabel') as string}</label>

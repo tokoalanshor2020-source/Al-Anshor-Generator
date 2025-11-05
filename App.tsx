@@ -4,7 +4,7 @@ import { VideoGeneratorForm } from './components/VideoGeneratorForm';
 import { Loader } from './components/Loader';
 import { VideoPlayer } from './components/VideoPlayer';
 import { StoryCreator } from './components/story-creator/StoryCreator';
-import type { GeneratorOptions, Character, StoryboardScene, DirectingSettings, PublishingKitData, ActiveTab, VideoGeneratorState, ReferenceIdeaState, AffiliateCreatorState, GeneratedAffiliateImage } from './types';
+import type { GeneratorOptions, Character, StoryboardScene, DirectingSettings, PublishingKitData, ActiveTab, VideoGeneratorState, ReferenceIdeaState, AffiliateCreatorState, GeneratedAffiliateImage, VideoGeneratorOrigin } from './types';
 import { generateVideo } from './services/geminiService';
 import { useLocalization } from './i18n';
 import { TutorialModal } from './components/TutorialModal';
@@ -76,6 +76,8 @@ export default function App() {
     }
     return 'story-creator';
   });
+
+  const [videoGeneratorOrigin, setVideoGeneratorOrigin] = useState<VideoGeneratorOrigin | null>(null);
   
   // State for video generator form, persisted to localStorage
   const [videoGeneratorState, setVideoGeneratorState] = useState<VideoGeneratorState>(() => {
@@ -89,11 +91,11 @@ export default function App() {
         localStorage.removeItem(VIDEO_GENERATOR_SESSION_KEY);
     }
     return {
-        prompt: '',
+        prompt: { video: '', audio: '' },
         imageFile: null,
-        aspectRatio: '16:9',
+        aspectRatio: '9:16',
         enableSound: true,
-        resolution: '720p',
+        resolution: '1080p',
     };
   });
   
@@ -273,8 +275,65 @@ export default function App() {
     }
   }, [t]);
   
-  const handleProceedToVideoGenerator = (prompt: string, data?: { base64: string, mimeType: string } | { affiliateImageId: string }) => {
+  const parseCompositePrompt = (compositePrompt: string): { video: string, audio: string } => {
+    // Attempt to parse as JSON for affiliate/structured prompts
     try {
+      const promptObject = JSON.parse(compositePrompt);
+      
+      // Heuristic to detect if this is a structured prompt with audio components
+      if (typeof promptObject === 'object' && promptObject !== null && (promptObject.NARRATION_SCRIPT || promptObject.AUDIO_MIXING_GUIDE)) {
+        const videoParts: { [key: string]: any } = {};
+        let audioString = '';
+
+        // Separate video and audio keys
+        for (const key in promptObject) {
+          if (key === 'NARRATION_SCRIPT' || key === 'AUDIO_MIXING_GUIDE') {
+            // Append to audio string for display
+            audioString += `//** ${key.replace(/_/g, ' ')} **//\n`;
+            audioString += JSON.stringify(promptObject[key], null, 2) + '\n\n';
+          } else {
+            videoParts[key] = promptObject[key];
+          }
+        }
+        
+        const video = JSON.stringify(videoParts, null, 2);
+        const audio = audioString.trim();
+
+        return { video, audio };
+      }
+    } catch (e) {
+      // Not a JSON string or not the expected format, proceed to text-based parsing
+    }
+
+    // Fallback for text-based prompts (from Storyboard)
+    const blueprintAudioMarker = '//** 7. NARRATION SCRIPT (VOICE OVER) **//';
+    const cinematicAudioMarker = '\n\nNARRATION SCRIPT\n';
+
+    let video = compositePrompt;
+    let audio = '';
+
+    let splitIndex = compositePrompt.indexOf(blueprintAudioMarker);
+    if (splitIndex !== -1) {
+        video = compositePrompt.substring(0, splitIndex).trim();
+        audio = compositePrompt.substring(splitIndex).trim();
+    } else {
+        splitIndex = compositePrompt.indexOf(cinematicAudioMarker);
+        if (splitIndex !== -1) {
+            video = compositePrompt.substring(0, splitIndex).trim();
+            audio = compositePrompt.substring(splitIndex).trim();
+        }
+    }
+
+    return { video, audio };
+  };
+
+  const handleProceedToVideoGenerator = (
+    prompt: string,
+    data?: { base64: string; mimeType: string } | { affiliateImageId: string },
+    origin?: VideoGeneratorOrigin
+  ) => {
+    try {
+        setVideoGeneratorOrigin(origin || 'direct');
         let imageToSet: { base64: string, mimeType: string } | null = null;
         
         if (data) {
@@ -296,10 +355,17 @@ export default function App() {
             }
         }
 
+        let finalPrompt: { video: string; audio: string };
+        if (origin === 'direct') {
+            finalPrompt = { video: '', audio: '' };
+        } else {
+            finalPrompt = parseCompositePrompt(prompt);
+        }
+
         setView('video-generator');
         setVideoGeneratorState(prevState => ({
             ...prevState,
-            prompt: prompt,
+            prompt: finalPrompt,
             imageFile: imageToSet
         }));
         setVideoUrl(null);
@@ -312,10 +378,27 @@ export default function App() {
     }
   };
   
-  const handleBackToStoryCreator = () => {
+  const handleGoBackFromVideoGenerator = () => {
     setVideoUrl(null);
     setError(null);
-    setView('story-creator');
+    
+    switch (videoGeneratorOrigin) {
+      case 'affiliate':
+        setView('story-creator');
+        setIsAffiliateCreatorModalOpen(true);
+        break;
+      case 'reference':
+        setView('story-creator');
+        setIsReferenceIdeaModalOpen(true);
+        break;
+      case 'storyboard':
+      case 'direct':
+      default:
+        setView('story-creator');
+        setActiveTab('editor'); // Go to editor for direct, storyboard for storyboard
+        if (videoGeneratorOrigin === 'storyboard') setActiveTab('storyboard');
+        break;
+    }
     window.scrollTo(0, 0);
   };
 
@@ -345,6 +428,20 @@ export default function App() {
               return scene;
           })
       );
+  };
+
+  const getBackButtonText = () => {
+    switch (videoGeneratorOrigin) {
+      case 'affiliate':
+        return t('backToAffiliateCreator');
+      case 'reference':
+        return t('backToReferenceAnalyzer');
+      case 'storyboard':
+        return t('backToStoryboard');
+      case 'direct':
+      default:
+        return t('backToEditor');
+    }
   };
 
 
@@ -415,11 +512,10 @@ export default function App() {
         {view === 'video-generator' && (
           <div>
               <button 
-                onClick={handleBackToStoryCreator}
+                onClick={handleGoBackFromVideoGenerator}
                 className="mb-6 inline-flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-base-300 hover:bg-brand-primary/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-base-100 focus:ring-brand-secondary transition-colors"
               >
-{/* FIX: Cast result of t() to string */}
-                  &larr; {t('backToStoryboard') as string}
+                  &larr; {getBackButtonText() as string}
               </button>
             <div className="bg-base-200 p-6 sm:p-8 rounded-2xl shadow-2xl border border-base-300">
               <VideoGeneratorForm 
@@ -428,6 +524,7 @@ export default function App() {
                 generatorState={videoGeneratorState}
                 onStateChange={setVideoGeneratorState}
                 characters={characters}
+                videoGeneratorOrigin={videoGeneratorOrigin}
               />
             </div>
 
@@ -442,7 +539,7 @@ export default function App() {
             )}
 
             {videoUrl && !isLoading && (
-              <VideoPlayer videoUrl={videoUrl} prompt={videoGeneratorState.prompt} />
+              <VideoPlayer videoUrl={videoUrl} prompt={videoGeneratorState.prompt.video} />
             )}
           </div>
         )}

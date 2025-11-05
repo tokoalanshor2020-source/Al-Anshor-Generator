@@ -3,7 +3,7 @@ import { ScriptEditor } from './ScriptEditor';
 import { Storyboard } from './Storyboard';
 import { PublishingKitView } from './PublishingKitView';
 import { useLocalization } from '../../i18n';
-import type { Character, DirectingSettings, StoryboardScene, PublishingKitData, ReferenceIdeaState, AffiliateCreatorState } from '../../types';
+import type { Character, DirectingSettings, StoryboardScene, PublishingKitData, ReferenceIdeaState, AffiliateCreatorState, VideoGeneratorOrigin } from '../../types';
 
 type ActiveTab = 'editor' | 'storyboard' | 'publishingKit';
 
@@ -20,7 +20,7 @@ interface MainContentProps {
     onGenerateStoryboard: () => Promise<void>;
     storyboard: StoryboardScene[];
     error: string | null;
-    onProceedToVideo: (prompt: string, image?: { base64: string, mimeType: string }) => void;
+    onProceedToVideo: (prompt: string, image?: { base64: string; mimeType: string }, origin?: VideoGeneratorOrigin) => void;
     characters: Character[];
     directingSettings: DirectingSettings;
     setDirectingSettings: React.Dispatch<React.SetStateAction<DirectingSettings>>;

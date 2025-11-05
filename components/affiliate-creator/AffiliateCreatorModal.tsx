@@ -1,7 +1,7 @@
 // FIX: Implemented the full AffiliateCreatorModal component to resolve module not found and other related errors.
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useLocalization } from '../../i18n';
-import type { AffiliateCreatorState, GeneratedAffiliateImage, StoredReferenceFile, ReferenceFile, VideoPromptType } from '../../types';
+import type { AffiliateCreatorState, GeneratedAffiliateImage, StoredReferenceFile, ReferenceFile, VideoPromptType, VideoGeneratorOrigin } from '../../types';
 import { generateAffiliateImagePrompts, generateAffiliateImages, generateAffiliateVideoPrompt, generateAffiliateDescription } from '../../services/storyCreatorService';
 import { PlusIcon } from '../icons/PlusIcon';
 import { TrashIcon } from '../icons/TrashIcon';
@@ -20,7 +20,7 @@ interface AffiliateCreatorModalProps {
     isOpen: boolean;
     onClose: () => void;
     // FIX: Update the `onProceedToVideo` prop to accept the `affiliateImageId` payload.
-    onProceedToVideo: (prompt: string, data?: { base64: string; mimeType: string } | { affiliateImageId: string }) => void;
+    onProceedToVideo: (prompt: string, data?: { base64: string; mimeType: string } | { affiliateImageId: string }, origin?: VideoGeneratorOrigin) => void;
     affiliateCreatorState: AffiliateCreatorState;
     setAffiliateCreatorState: React.Dispatch<React.SetStateAction<AffiliateCreatorState>>;
 }
@@ -410,7 +410,7 @@ export const AffiliateCreatorModal: React.FC<AffiliateCreatorModalProps> = ({
         if (!image.videoPrompt) {
             return;
         }
-        onProceedToVideo(image.videoPrompt, { affiliateImageId: image.id });
+        onProceedToVideo(image.videoPrompt, { affiliateImageId: image.id }, 'affiliate');
         onClose();
     };
 
