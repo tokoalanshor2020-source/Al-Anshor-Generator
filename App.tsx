@@ -338,17 +338,11 @@ export default function App() {
         
         if (data) {
             if ('affiliateImageId' in data) {
-                const affiliateSession = localStorage.getItem(AFFILIATE_CREATOR_SESSION_KEY);
-                if (affiliateSession) {
-                    const affiliateState: AffiliateCreatorState = JSON.parse(affiliateSession);
-                    const sourceImage = affiliateState.generatedImages.find(img => img.id === data.affiliateImageId);
-                    if (sourceImage) {
-                        imageToSet = { base64: sourceImage.base64, mimeType: sourceImage.mimeType };
-                    } else {
-                        console.error("Affiliate image ID from payload not found in localStorage state.");
-                    }
+                const sourceImage = affiliateCreatorState.generatedImages.find(img => img.id === data.affiliateImageId);
+                if (sourceImage) {
+                    imageToSet = { base64: sourceImage.base64, mimeType: sourceImage.mimeType };
                 } else {
-                    console.error("Could not find affiliate session in localStorage to load image.");
+                    console.error("Affiliate image ID from payload not found in component state.");
                 }
             } else {
                 imageToSet = data as { base64: string, mimeType: string };
