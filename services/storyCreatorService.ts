@@ -736,100 +736,110 @@ export const generatePhotoStyleImages = async (
     state: PhotoStyleCreatorState
 ): Promise<{ base64: string, mimeType: string }[]> => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
-    let promptText = '';
-    const parts: any[] = [];
 
-    // --- 1. Add all reference files first ---
-    // This ensures media context is provided before the text prompt.
-    if (state.referenceFiles.length > 0) {
-        state.referenceFiles.forEach(file => {
-            parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
-        });
-    }
-    if (state.productFiles.length > 0) {
-        state.productFiles.forEach(file => {
-            parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
-        });
-    }
-    
-    // --- 2. Build the text prompt with multiple aspect ratio instructions ---
-    // FIX: Changed variable declaration to fix type error.
-    let aspectRatioDescription: string;
-    switch (state.aspectRatio) {
-        case '9:16':
-            aspectRatioDescription = 'a tall, vertical portrait (9:16 aspect ratio)';
-            break;
-        case '16:9':
-            aspectRatioDescription = 'a wide, horizontal landscape (16:9 aspect ratio)';
-            break;
-        case '1:1':
-            aspectRatioDescription = 'a perfect square (1:1 aspect ratio)';
-            break;
-    }
-
-    // Instruction at the very beginning of the text part.
-    promptText = `Your most important task is to generate an image that is ${aspectRatioDescription}. This instruction overrides any visual information from reference images. `;
-
+    // --- 1. Build the core creative prompt text (without aspect ratio instructions) ---
+    let creativePrompt = '';
     switch (state.photoType) {
         case 'artist_model':
             if (state.referenceFiles.length > 0) {
-                promptText += `Using the provided reference person, create a new photo. `;
+                creativePrompt += `Using the provided reference person, create a new photo. `;
             } else {
-                promptText += `Create a photo of ${state.prompt}. `;
+                creativePrompt += `Create a photo of ${state.prompt}. `;
             }
-            promptText += `The person has a '${getFinalValue(state, 'facialExpression')}' facial expression, is '${getFinalValue(state, 'handGesture')}' their hand, and is in a '${getFinalValue(state, 'bodyPose')}' body pose. The overall pose is '${getFinalValue(state, 'pose')}'. The background is a solid color with the hex code ${state.backgroundColor}.`;
+            creativePrompt += `The person has a '${getFinalValue(state, 'facialExpression')}' facial expression, is '${getFinalValue(state, 'handGesture')}' their hand, and is in a '${getFinalValue(state, 'bodyPose')}' body pose. The overall pose is '${getFinalValue(state, 'pose')}'. The background is a solid color with the hex code ${state.backgroundColor}.`;
             if (state.productFiles.length > 0) {
-                promptText += ` The person is interacting with the product shown in the reference media.`;
+                creativePrompt += ` The person is interacting with the product shown in the reference media.`;
             }
             break;
 
         case 'product':
-            promptText += `Generate professional product photography of ${state.productDescription}. The shot is a ${getFinalValue(state, 'productShotType')}. The lighting is ${getFinalValue(state, 'productLighting')}. The background is ${getFinalValue(state, 'productBackground')}.`;
+            creativePrompt += `Generate professional product photography of ${state.productDescription}. The shot is a ${getFinalValue(state, 'productShotType')}. The lighting is ${getFinalValue(state, 'productLighting')}. The background is ${getFinalValue(state, 'productBackground')}.`;
             if (state.productFiles.length > 0) {
-                promptText += ' The final image should be a variation based on the provided reference product media.';
+                creativePrompt += ' The final image should be a variation based on the provided reference product media.';
             }
             break;
 
         case 'thumbnail':
-            promptText += `Create a vibrant, eye-catching YouTube thumbnail about '${state.thumbnailTopic}'. The style should be similar to a popular '${getFinalValue(state, 'thumbnailStyle')}' thumbnail. Use a '${getFinalValue(state, 'thumbnailPalette')}' color palette. The thumbnail MUST include the text '${state.thumbnailOverlayText}' prominently. The font should be '${getFinalValue(state, 'thumbnailFont')}' and easy to read.`;
+            creativePrompt += `Create a vibrant, eye-catching YouTube thumbnail about '${state.thumbnailTopic}'. The style should be similar to a popular '${getFinalValue(state, 'thumbnailStyle')}' thumbnail. Use a '${getFinalValue(state, 'thumbnailPalette')}' color palette. The thumbnail MUST include the text '${state.thumbnailOverlayText}' prominently. The font should be '${getFinalValue(state, 'thumbnailFont')}' and easy to read.`;
             if (state.referenceFiles.length > 0) {
-                promptText += ' The visual elements should be inspired by the provided reference media.';
+                creativePrompt += ' The visual elements should be inspired by the provided reference media.';
             }
             break;
     }
-    
-    // Final reinforcement instruction.
-    promptText += `\n\n**FINAL, CRITICAL INSTRUCTION:** The output image's aspect ratio MUST BE exactly ${state.aspectRatio}. IGNORE the aspect ratio of any reference files.`;
-    parts.push({ text: promptText });
 
-    const generateSingleImage = async (): Promise<{ base64: string, mimeType: string }> => {
-        const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
-            contents: { parts },
+    const hasReferenceImages = state.referenceFiles.length > 0 || state.productFiles.length > 0;
+
+    if (hasReferenceImages) {
+        // --- Case 1: Reference images exist. Use gemini-2.5-flash-image with a very strong prompt. ---
+        // This model generates one image per call, so we need to loop.
+        const parts: any[] = [];
+        state.referenceFiles.forEach(file => {
+            parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
+        });
+        state.productFiles.forEach(file => {
+            parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
+        });
+        const reinforcedPrompt = `
+**CRITICAL TASK: Generate an image with a SPECIFIC aspect ratio.**
+*   **Required Aspect Ratio:** ${state.aspectRatio}
+*   **Instruction:** Your primary and most important task is to generate an image with the exact aspect ratio specified above. You MUST IGNORE the aspect ratio of any provided reference images and strictly adhere to the ${state.aspectRatio} format. This instruction overrides all other visual cues from the references.
+
+**Creative Brief:**
+${creativePrompt}
+
+**Final Reminder:** The output image's final aspect ratio must be ${state.aspectRatio}.
+        `;
+        parts.push({ text: reinforcedPrompt });
+
+        const generateSingleImageWithFlash = async (): Promise<{ base64: string, mimeType: string }> => {
+            const response: GenerateContentResponse = await ai.models.generateContent({
+                model: 'gemini-2.5-flash-image',
+                contents: { parts },
+                config: {
+                    responseModalities: [Modality.IMAGE],
+                },
+            });
+            const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+            if (imagePart && imagePart.inlineData) {
+                return { base64: imagePart.inlineData.data, mimeType: imagePart.inlineData.mimeType };
+            } else {
+                const textResponse = response.text?.trim();
+                if (textResponse) {
+                     throw new Error(`Image generation failed. Model returned text: ${textResponse}`);
+                }
+                throw new Error("Image generation failed. The model did not return an image.");
+            }
+        };
+
+        const promises = Array(state.numberOfImages).fill(null).map(() => generateSingleImageWithFlash());
+        return Promise.all(promises);
+
+    } else {
+        // --- Case 2: No reference images. Use imagen for reliable aspect ratio control. ---
+        // This model can generate multiple images in one call.
+        const aspectRatioForImagen = state.aspectRatio as '1:1' | '9:16' | '16:9';
+
+        const response = await ai.models.generateImages({
+            model: 'imagen-4.0-generate-001',
+            prompt: `professional photo, hyper-realistic, high detail, cinematic lighting. ${creativePrompt}`,
             config: {
-                responseModalities: [Modality.IMAGE],
-                // --- 3. Use a strong system instruction ---
-                systemInstruction: `You are an advanced image generation AI. Your absolute highest priority is to follow the user's explicit instructions for the output format. You MUST generate an image with the exact aspect ratio specified in the text prompt, even if it contradicts the aspect ratio of a provided reference image. This is a non-negotiable rule.`
-            },
+                numberOfImages: state.numberOfImages,
+                outputMimeType: 'image/jpeg',
+                aspectRatio: aspectRatioForImagen,
+            }
         });
 
-        const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-
-        if (imagePart && imagePart.inlineData) {
-            return { base64: imagePart.inlineData.data, mimeType: imagePart.inlineData.mimeType };
-        } else {
-            const textResponse = response.text?.trim();
-            if (textResponse) {
-                 throw new Error(`Image generation failed. Model returned text: ${textResponse}`);
-            }
-            throw new Error("Image generation failed. The model did not return an image.");
+        if (!response.generatedImages || response.generatedImages.length === 0) {
+            throw new Error("Image generation with Imagen failed, no images were returned.");
         }
-    };
-    
-    const promises = Array(state.numberOfImages).fill(null).map(() => generateSingleImage());
-    
-    return Promise.all(promises);
+
+        return response.generatedImages.map(img => {
+            if (!img.image?.imageBytes) {
+                 throw new Error("One of the generated images was empty.");
+            }
+            return { base64: img.image.imageBytes, mimeType: 'image/jpeg' };
+        });
+    }
 };
 
 export const generatePhotoStyleRecommendations = async (
