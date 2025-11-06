@@ -1,6 +1,7 @@
 // services/storyCreatorService.ts
 import { GoogleGenAI, Type, GenerateContentResponse, Modality } from "@google/genai";
-import type { Character, StoryboardScene, DirectingSettings, PublishingKitData, StoryIdea, ThemeSuggestion, ThemeIdeaOptions, StoryIdeaOptions, GeneratedPrompts, ReferenceFile, GeneratedAffiliateImage, AffiliateCreatorState, VideoPromptType, StoredReferenceFile, PhotoStyleCreatorState } from '../types';
+// FIX: Import the missing `PhotoType` type to resolve a TypeScript error.
+import type { Character, StoryboardScene, DirectingSettings, PublishingKitData, StoryIdea, ThemeSuggestion, ThemeIdeaOptions, StoryIdeaOptions, GeneratedPrompts, ReferenceFile, GeneratedAffiliateImage, AffiliateCreatorState, VideoPromptType, StoredReferenceFile, PhotoStyleCreatorState, PhotoStyleRecommendations, PhotoType } from '../types';
 import { languageMap } from '../i18n';
 
 
@@ -718,34 +719,69 @@ export const generateReferenceImage = async (
 
 // --- Photo Style Creator Service Functions ---
 
+const getFinalValue = (state: PhotoStyleCreatorState, key: keyof PhotoStyleCreatorState) => {
+    // FIX: Cast key to string to allow string manipulation methods.
+    const stringKey = key as string;
+    const customKey = `custom${stringKey.charAt(0).toUpperCase() + stringKey.slice(1)}` as keyof PhotoStyleCreatorState;
+    // @ts-ignore
+    if (state[key] === 'custom') {
+        // @ts-ignore
+        return state[customKey] || '';
+    }
+    // @ts-ignore
+    return state[key];
+};
+
 export const generatePhotoStyleImages = async (
     state: PhotoStyleCreatorState
 ): Promise<{ base64: string, mimeType: string }[]> => {
-    if (!state.userPhoto) {
-        throw new Error("User photo is required.");
-    }
-
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
-    let promptText = `A photo of a person based on the first reference image. The person has a '${state.facialExpression}' facial expression, is '${state.handGesture}' their hand, and is in a '${state.bodyPose}' body pose. The overall pose is '${state.pose}'. The background is a solid color with the hex code ${state.backgroundColor}. The desired aspect ratio is ${state.aspectRatio}.`;
+    let promptText = '';
+    const parts: any[] = [];
 
-    const parts: any[] = [{
-        inlineData: {
-            mimeType: state.userPhoto.mimeType,
-            data: state.userPhoto.base64
-        }
-    }];
-
-    if (state.productPhoto) {
-        promptText += ` The person is interacting with the product shown in the second reference image.`;
-        parts.push({
-            inlineData: {
-                mimeType: state.productPhoto.mimeType,
-                data: state.productPhoto.base64
+    switch (state.photoType) {
+        case 'artist_model':
+            if (state.referenceFiles.length > 0) {
+                state.referenceFiles.forEach(file => {
+                    parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
+                });
+                promptText = `A photo of a person based on the reference media provided. `;
+            } else {
+                promptText = `A photo of ${state.prompt}. `;
             }
-        });
-    }
+            promptText += `The person has a '${getFinalValue(state, 'facialExpression')}' facial expression, is '${getFinalValue(state, 'handGesture')}' their hand, and is in a '${getFinalValue(state, 'bodyPose')}' body pose. The overall pose is '${getFinalValue(state, 'pose')}'. The background is a solid color with the hex code ${state.backgroundColor}.`;
+            
+            if (state.productFiles.length > 0) {
+                promptText += ` The person is interacting with the product shown in the second set of reference media.`;
+                state.productFiles.forEach(file => {
+                    parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
+                });
+            }
+            break;
 
+        case 'product':
+            promptText = `Professional product photography of ${state.productDescription}. The shot is a ${getFinalValue(state, 'productShotType')}. The lighting is ${getFinalValue(state, 'productLighting')}. The background is ${getFinalValue(state, 'productBackground')}.`;
+            if (state.productFiles.length > 0) {
+                 state.productFiles.forEach(file => {
+                    parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
+                });
+                promptText += ' The final image should be a variation based on the provided reference product media.';
+            }
+            break;
+
+        case 'thumbnail':
+            promptText = `Create a vibrant, eye-catching YouTube thumbnail about '${state.thumbnailTopic}'. The style should be similar to a popular '${getFinalValue(state, 'thumbnailStyle')}' thumbnail. Use a '${getFinalValue(state, 'thumbnailPalette')}' color palette. The thumbnail MUST include the text '${state.thumbnailOverlayText}' prominently. The font should be '${getFinalValue(state, 'thumbnailFont')}' and easy to read.`;
+            if (state.referenceFiles.length > 0) {
+                state.referenceFiles.forEach(file => {
+                    parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
+                });
+                promptText += ' The visual elements should be inspired by the provided reference media.';
+            }
+            break;
+    }
+    
+    promptText += ` The desired aspect ratio is ${state.aspectRatio}.`;
     parts.push({ text: promptText });
 
     const generateSingleImage = async (): Promise<{ base64: string, mimeType: string }> => {
@@ -773,6 +809,82 @@ export const generatePhotoStyleImages = async (
     const promises = Array(state.numberOfImages).fill(null).map(() => generateSingleImage());
     
     return Promise.all(promises);
+};
+
+export const generatePhotoStyleRecommendations = async (
+    referenceFiles: StoredReferenceFile[],
+    photoType: PhotoType,
+    language: string
+): Promise<PhotoStyleRecommendations> => {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+    let requestedFields: string[] = [];
+    switch(photoType) {
+        case 'artist_model':
+            requestedFields = ['facialExpression', 'handGesture', 'bodyPose', 'pose'];
+            break;
+        case 'product':
+             requestedFields = ['productShotType', 'productLighting', 'productBackground'];
+            break;
+        case 'thumbnail':
+            requestedFields = ['thumbnailStyle', 'thumbnailFont', 'thumbnailPalette'];
+            break;
+    }
+
+    const prompt = `
+You are a creative visual analyst. Analyze the provided image(s)/video(s).
+Based on the media and the intended use case ('${photoType}'), generate relevant suggestions for the following fields: ${requestedFields.join(', ')}.
+
+**CRITICAL INSTRUCTION:** All suggestions MUST be written in the following language: **${language}**.
+
+**Task:**
+Return a single JSON object. Each key in the object should be one of the requested field names, and its value should be an array of 3-4 concise, relevant string suggestions based on the image content.
+
+Example for a 'thumbnail' type with a picture of a phone (if language is English):
+{
+  "thumbnailStyle": ["Tech Review", "Unboxing", "Minimalist"],
+  "thumbnailFont": ["Clean & Modern", "Bold & Impactful", "Futuristic"],
+  "thumbnailPalette": ["Monochromatic", "Blue & White", "High Contrast"]
+}
+
+Output ONLY the valid JSON object.
+    `;
+
+    const schemaProperties: { [key: string]: any } = {};
+    requestedFields.forEach(field => {
+        schemaProperties[field] = {
+            type: Type.ARRAY,
+            items: { type: Type.STRING }
+        };
+    });
+
+    const schema = {
+        type: Type.OBJECT,
+        properties: schemaProperties
+    };
+
+    const parts: any[] = [{ text: prompt }];
+    referenceFiles.forEach(file => {
+        parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
+    });
+
+
+    const response: GenerateContentResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: { parts },
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: schema
+        }
+    });
+
+    try {
+        const result = JSON.parse(response.text);
+        return result as PhotoStyleRecommendations;
+    } catch (e) {
+        console.error("Failed to parse recommendations JSON:", response.text);
+        throw new Error("The AI returned an invalid recommendation format.");
+    }
 };
 
 
@@ -1113,16 +1225,18 @@ Output ONLY the raw JSON object, with no markdown, comments, or explanations.
 };
 
 // --- Speech Generator Service Functions ---
-export const generateStyleSuggestions = async (scriptText: string): Promise<string[]> => {
+export const generateStyleSuggestions = async (scriptText: string, language: string): Promise<string[]> => {
     const prompt = `
 You are a voice director AI. Analyze the following script text. Based on its content, tone, and potential context (e.g., advertisement, storytelling, documentary, religious text), generate a JSON array of 10 diverse and relevant 'style instructions' for a text-to-speech engine. The instructions should be concise and descriptive.
+
+**CRITICAL INSTRUCTION:** The instructions MUST be written in the following language: **${language}**.
 
 **Script Text:**
 "${scriptText}"
 
 **Task:**
 Return a valid JSON array containing exactly 10 string values for the style instructions.
-Example output: ["Read in a cheerful and enthusiastic tone", "Recite with a solemn and reverent voice"]
+Example output (if language is English): ["Read in a cheerful and enthusiastic tone", "Recite with a solemn and reverent voice"]
 
 Output ONLY the valid JSON array.
 `;

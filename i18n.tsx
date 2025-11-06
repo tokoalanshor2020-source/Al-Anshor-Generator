@@ -407,47 +407,140 @@ const enTranslations: Translations = {
     },
     photoStyleCreator: {
       title: "Photo Style Creator",
-      description: "Generate a series of stylized photos based on your image.",
+      description: "Generate a series of stylized photos for any purpose.",
       buttonText: "Create Photo Style",
-      yourPhoto: "1. Your Photo (Required)",
-      productPhoto: "2. Product Photo (Optional)",
-      facialExpression: "3. Facial Expression",
-      handGesture: "4. Hand Gesture",
-      bodyPose: "5. Body Pose",
-      pose: "6. Pose",
-      backgroundColor: "7. Background Color",
-      numberOfImages: "8. Number of Images",
-      aspectRatio: "9. Aspect Ratio",
+      photoType: "Photo Type",
+      types: {
+        artist_model: "Artist/Model",
+        product: "Product",
+        thumbnail: "Thumbnail"
+      },
       generate: "Generate",
       generating: "Generating...",
       readyText: "Your photobooth is ready",
-      readySubtext: "Adjust the controls on the left and click 'Generate' to see the magic happen.",
+      readySubtext: "Select a photo type, adjust the controls, and click 'Generate' to see the magic happen.",
       uploadPlaceholder: "Upload a file or drag and drop",
-      uploadSubtitle: "PNG, JPG, WEBP up to 10MB",
-      noProductPlaceholder: "No Product",
-      noProductSubtext: "Drag a product photo here",
-      expressions: {
+      uploadSubtitle: "Images & Videos (10s max) up to 10MB",
+      errorNoPhoto: "Please upload your photo to generate images.",
+      errorNoPrompt: "Please enter a description to generate images.",
+      downloadTooltip: "Download Image",
+      generatingRecommendations: "Getting AI recommendations...",
+      custom: "Custom...",
+      customPlaceholder: "Type your own value...",
+      aiRecommendations: "AI Recommendations",
+      standardOptions: "Standard Options",
+      
+      // Groups
+      groups: {
+        subject: "Subject & Reference",
+        style: "Style Details",
+        output: "Output Settings"
+      },
+      
+      // Artist/Model Mode
+      artist: {
+        referencePhoto: "Reference Photo (Optional)",
+        prompt: "Subject Description",
+        promptPlaceholder: "e.g., a man with short black hair, smiling",
+        facialExpression: "Facial Expression",
+        handGesture: "Hand Gesture",
+        bodyPose: "Body Pose",
+        pose: "Pose",
+        backgroundColor: "Background Color",
+        expressions: {
           surprised: "Surprised",
           happy: "Happy",
-          sad: "Sad"
-      },
-      gestures: {
+          sad: "Sad",
+          neutral: "Neutral",
+          angry: "Angry"
+        },
+        gestures: {
           pointing: "Pointing",
           waving: "Waving",
-          thumbs_up: "Thumbs Up"
-      },
-      bodyPoses: {
+          thumbs_up: "Thumbs Up",
+          open_palm: "Open Palm",
+          none: "None"
+        },
+        bodyPoses: {
           standing: "Standing",
           sitting: "Sitting",
-          walking: "Walking"
-      },
-      poses: {
+          walking: "Walking",
+          action: "Action Pose"
+        },
+        poses: {
           relaxed: "Relaxed",
           formal: "Formal",
-          dynamic: "Dynamic"
+          dynamic: "Dynamic",
+          candid: "Candid"
+        },
       },
-      errorNoPhoto: "Please upload your photo to generate images."
-  },
+
+      // Product Mode
+      product: {
+        productPhoto: "Product Photo (Optional)",
+        productDescription: "Product Description",
+        productDescriptionPlaceholder: "e.g., a red ceramic coffee mug with a white logo",
+        shotType: "Shot Type",
+        shotTypes: {
+          close_up: "Close-up",
+          lifestyle: "Lifestyle",
+          in_context: "In Context",
+          studio: "Studio"
+        },
+        lighting: "Lighting",
+        lightingOptions: {
+          soft: "Soft Light",
+          dramatic: "Dramatic",
+          natural: "Natural Light",
+          studio: "Studio Lighting"
+        },
+        background: "Background / Setting",
+        backgroundPlaceholder: "e.g., on a rustic wooden table, minimalist white background",
+        backgroundOptions: {
+            minimalist_white: "Minimalist White",
+            wooden_table: "Rustic Wooden Table",
+            gradient_blue: "Blue Gradient",
+            outdoor_nature: "Outdoor (Nature)"
+        },
+      },
+
+      // Thumbnail Mode
+      thumbnail: {
+        referenceImage: "Reference Image (Optional)",
+        topic: "Main Subject / Topic",
+        topicPlaceholder: "e.g., Unboxing the new smartphone",
+        style: "Thumbnail Style",
+        styles: {
+          gaming: "Gaming",
+          vlog: "Vlog / Lifestyle",
+          educational: "Educational",
+          news: "News / Commentary",
+          reaction: "Reaction"
+        },
+        overlayText: "Overlay Text",
+        overlayTextPlaceholder: "e.g., YOU WON'T BELIEVE THIS!",
+        font: "Font Style",
+        fonts: {
+          bold: "Bold & Impactful",
+          playful: "Playful",
+          clean: "Clean & Modern",
+          script: "Script / Handwritten"
+        },
+        palette: "Color Palette / Vibe",
+        palettes: {
+          vibrant: "Vibrant & High Contrast",
+          dark_moody: "Dark & Moody",
+          minimalist: "Minimalist & Clean",
+          pastel: "Pastel & Soft"
+        }
+      },
+      
+      // Shared
+      shared: {
+        numberOfImages: "Number of Images",
+        aspectRatio: "Aspect Ratio"
+      }
+    },
     affiliateCreator: {
         title: "Affiliate Video Creator",
         description: "Generate a consistent set of images for your affiliate content.",
@@ -907,47 +1000,140 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
     },
     photoStyleCreator: {
       title: "Buat Gaya Foto",
-      description: "Hasilkan serangkaian foto bergaya berdasarkan gambar Anda.",
+      description: "Hasilkan serangkaian foto bergaya untuk tujuan apa pun.",
       buttonText: "Buat Gaya Foto",
-      yourPhoto: "1. Foto Anda (Wajib)",
-      productPhoto: "2. Foto Produk (Opsional)",
-      facialExpression: "3. Ekspresi Wajah",
-      handGesture: "4. Gerakan Tangan",
-      bodyPose: "5. Pose Tubuh",
-      pose: "6. Gaya",
-      backgroundColor: "7. Warna Latar",
-      numberOfImages: "8. Jumlah Gambar",
-      aspectRatio: "9. Rasio Aspek",
+      photoType: "Tipe Foto",
+      types: {
+          artist_model: "Artis/Model",
+          product: "Produk",
+          thumbnail: "Thumbnail"
+      },
       generate: "Hasilkan",
       generating: "Menghasilkan...",
       readyText: "Photobooth Anda sudah siap",
-      readySubtext: "Sesuaikan kontrol di sebelah kiri dan klik 'Hasilkan' untuk melihat keajaiban terjadi.",
+      readySubtext: "Pilih tipe foto, sesuaikan kontrol, dan klik 'Hasilkan' untuk melihat keajaiban terjadi.",
       uploadPlaceholder: "Unggah file atau seret dan lepas",
-      uploadSubtitle: "PNG, JPG, WEBP hingga 10MB",
-      noProductPlaceholder: "Tidak Ada Produk",
-      noProductSubtext: "Seret foto produk di sini",
-      expressions: {
-          surprised: "Terkejut",
-          happy: "Senang",
-          sad: "Sedih"
+      uploadSubtitle: "Gambar & Video (maks 10d) hingga 10MB",
+      errorNoPhoto: "Silakan unggah foto Anda untuk menghasilkan gambar.",
+      errorNoPrompt: "Silakan masukkan deskripsi untuk menghasilkan gambar.",
+      downloadTooltip: "Unduh Gambar",
+      generatingRecommendations: "Mendapatkan rekomendasi AI...",
+      custom: "Kustom...",
+      customPlaceholder: "Ketik nilai Anda sendiri...",
+      aiRecommendations: "Rekomendasi AI",
+      standardOptions: "Opsi Standar",
+
+      // Groups
+      groups: {
+        subject: "Subjek & Referensi",
+        style: "Detail Gaya",
+        output: "Pengaturan Output"
       },
-      gestures: {
-          pointing: "Menunjuk",
-          waving: "Melambai",
-          thumbs_up: "Jempol ke Atas"
+
+      // Artist/Model Mode
+      artist: {
+        referencePhoto: "Foto Referensi (Opsional)",
+        prompt: "Deskripsi Subjek",
+        promptPlaceholder: "cth: seorang pria dengan rambut hitam pendek, tersenyum",
+        facialExpression: "Ekspresi Wajah",
+        handGesture: "Gerakan Tangan",
+        bodyPose: "Pose Tubuh",
+        pose: "Gaya",
+        backgroundColor: "Warna Latar",
+        expressions: {
+            surprised: "Terkejut",
+            happy: "Senang",
+            sad: "Sedih",
+            neutral: "Netral",
+            angry: "Marah"
+        },
+        gestures: {
+            pointing: "Menunjuk",
+            waving: "Melambai",
+            thumbs_up: "Jempol ke Atas",
+            open_palm: "Telapak Tangan Terbuka",
+            none: "Tidak Ada"
+        },
+        bodyPoses: {
+            standing: "Berdiri",
+            sitting: "Duduk",
+            walking: "Berjalan",
+            action: "Pose Aksi"
+        },
+        poses: {
+            relaxed: "Santai",
+            formal: "Formal",
+            dynamic: "Dinamis",
+            candid: "Candid"
+        },
       },
-      bodyPoses: {
-          standing: "Berdiri",
-          sitting: "Duduk",
-          walking: "Berjalan"
+
+      // Product Mode
+      product: {
+        productPhoto: "Foto Produk (Opsional)",
+        productDescription: "Deskripsi Produk",
+        productDescriptionPlaceholder: "cth: cangkir kopi keramik merah dengan logo putih",
+        shotType: "Jenis Bidikan",
+        shotTypes: {
+            close_up: "Close-up",
+            lifestyle: "Gaya Hidup",
+            in_context: "Dalam Konteks",
+            studio: "Studio"
+        },
+        lighting: "Pencahayaan",
+        lightingOptions: {
+            soft: "Cahaya Lembut",
+            dramatic: "Dramatis",
+            natural: "Cahaya Alami",
+            studio: "Pencahayaan Studio"
+        },
+        background: "Latar Belakang / Setelan",
+        backgroundPlaceholder: "cth: di atas meja kayu pedesaan, latar belakang putih minimalis",
+        backgroundOptions: {
+            minimalist_white: "Putih Minimalis",
+            wooden_table: "Meja Kayu Pedesaan",
+            gradient_blue: "Gradien Biru",
+            outdoor_nature: "Luar Ruangan (Alam)"
+        },
       },
-      poses: {
-          relaxed: "Santai",
-          formal: "Formal",
-          dynamic: "Dinamis"
+
+      // Thumbnail Mode
+      thumbnail: {
+        referenceImage: "Gambar Referensi (Opsional)",
+        topic: "Subjek Utama / Topik",
+        topicPlaceholder: "cth: Unboxing smartphone baru",
+        style: "Gaya Thumbnail",
+        styles: {
+            gaming: "Gaming",
+            vlog: "Vlog / Gaya Hidup",
+            educational: "Edukasi",
+            news: "Berita / Komentar",
+            reaction: "Reaksi"
+        },
+        overlayText: "Teks Overlay",
+        overlayTextPlaceholder: "cth: ANDA TIDAK AKAN PERCAYA INI!",
+        font: "Gaya Huruf",
+        fonts: {
+            bold: "Tebal & Berdampak",
+            playful: "Menyenangkan",
+            clean: "Bersih & Modern",
+            script: "Tulisan Tangan / Script"
+        },
+        palette: "Palet Warna / Suasana",
+        palettes: {
+            vibrant: "Cerah & Kontras Tinggi",
+            dark_moody: "Gelap & Murung",
+            minimalist: "Minimalis & Bersih",
+            pastel: "Pastel & Lembut"
+        }
       },
-      errorNoPhoto: "Silakan unggah foto Anda untuk menghasilkan gambar."
-  },
+      
+      // Shared
+      shared: {
+        numberOfImages: "Jumlah Gambar",
+        aspectRatio: "Rasio Aspek"
+      }
+    },
     affiliateCreator: {
         title: "Pembuat Video Afiliasi",
         description: "Hasilkan serangkaian gambar yang konsisten untuk konten afiliasi Anda.",
@@ -1076,71 +1262,87 @@ const translations: { [key in Language]: Translations } = {
     fr: frTranslations,
 };
 
-// --- Language Context and Provider ---
-
+// FIX: Add LanguageProvider and useLocalization to provide internationalization context to the application.
 interface LanguageContextType {
     language: Language;
     setLanguage: (language: Language) => void;
-    t: (key: string) => string | string[] | Translations;
+    translations: Translations;
     dir: 'ltr' | 'rtl';
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export const LanguageProvider: React.FC<PropsWithChildren<{}>> = ({ children }) => {
-    const [language, setLanguageState] = useState<Language>(() => {
-        try {
-            const storedLang = localStorage.getItem(LANGUAGE_STORAGE_key) as Language;
-            return storedLang && languageMap[storedLang] ? storedLang : 'en';
-        } catch {
-            return 'en';
-        }
-    });
-    
-    const dir = ['ar'].includes(language) ? 'rtl' : 'ltr';
+const rtlLanguages: Language[] = ['ar'];
 
-    const setLanguage = useCallback((lang: Language) => {
-        setLanguageState(lang);
+const getInitialLanguage = (): Language => {
+    try {
+        const storedLang = localStorage.getItem(LANGUAGE_STORAGE_key) as Language;
+        if (storedLang && languageMap[storedLang]) {
+            return storedLang;
+        }
+    } catch (e) {
+        console.error("Failed to read language from localStorage", e);
+    }
+
+    const browserLang = navigator.language.split('-')[0] as Language;
+    if (languageMap[browserLang]) {
+        return browserLang;
+    }
+
+    return 'en';
+};
+
+export const LanguageProvider: React.FC<PropsWithChildren<{}>> = ({ children }) => {
+    const [language, setLanguage] = useState<Language>(getInitialLanguage);
+
+    useEffect(() => {
         try {
-            localStorage.setItem(LANGUAGE_STORAGE_key, lang);
+            localStorage.setItem(LANGUAGE_STORAGE_key, language);
         } catch (e) {
             console.error("Failed to save language to localStorage", e);
         }
-    }, []);
-    
-    const t = useCallback((key: string): string | string[] | Translations => {
-        const langTranslations = translations[language];
-        const keys = key.split('.');
-        let result: any = langTranslations;
-        for (const k of keys) {
-            result = result?.[k];
-            if (result === undefined) {
-                // Fallback to English if key not found
-                let fallbackResult: any = translations.en;
-                for (const fk of keys) {
-                    fallbackResult = fallbackResult?.[fk];
-                    if (fallbackResult === undefined) {
-                        return key; // Return the key itself if not found in English either
-                    }
-                }
-                return fallbackResult;
-            }
-        }
-        return result ?? key;
     }, [language]);
 
+    const value: LanguageContextType = {
+        language,
+        setLanguage,
+        translations: translations[language],
+        dir: rtlLanguages.includes(language) ? 'rtl' : 'ltr',
+    };
 
     return (
-        <LanguageContext.Provider value={{ language, setLanguage, t, dir }}>
+        <LanguageContext.Provider value={value}>
             {children}
         </LanguageContext.Provider>
     );
 };
 
-export const useLocalization = (): LanguageContextType => {
+export const useLocalization = () => {
     const context = useContext(LanguageContext);
     if (context === undefined) {
         throw new Error('useLocalization must be used within a LanguageProvider');
     }
-    return context;
+
+    const { language, setLanguage, translations, dir } = context;
+
+    const t = useCallback((key: string): string | string[] | Translations => {
+        const keys = key.split('.');
+        let result: any = translations;
+        for (const k of keys) {
+            result = result?.[k];
+            if (result === undefined) {
+                console.warn(`Translation key not found: "${key}" for language "${language}"`);
+                // Fallback to English
+                let fallbackResult: any = enTranslations; // Use base English translations
+                for (const fk of keys) {
+                     fallbackResult = fallbackResult?.[fk];
+                     if (fallbackResult === undefined) return key;
+                }
+                return fallbackResult;
+            }
+        }
+        return result;
+    }, [language, translations]);
+
+    return { language, setLanguage, t, dir };
 };

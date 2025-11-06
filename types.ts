@@ -1,66 +1,168 @@
 // types.ts
 
-export type VideoGeneratorOrigin = 'storyboard' | 'affiliate' | 'reference' | 'direct';
+// --- Generic & Utility Types ---
+
+export interface ImageFile {
+  base64: string;
+  mimeType: string;
+  previewUrl: string; // Used for local preview
+}
+
+// Stored in localStorage (JSON-serializable)
+export interface StoredReferenceFile {
+    id: string;
+    base64: string;
+    mimeType: string;
+    type: 'image' | 'video';
+}
+// Used in components with live object URLs
+export interface ReferenceFile extends StoredReferenceFile {
+    previewUrl: string;
+    file: File;
+}
+
+// --- Video Generator ---
 
 export interface GeneratorOptions {
-  prompt: {
-    video: string;
-    audio: string;
-  };
+  prompt: { video: string; audio: string };
+  aspectRatio: '16:9' | '9:16' | '1:1' | '4:3' | '3:4';
+  enableSound: boolean;
+  resolution: '720p' | '1080p';
   image?: {
     base64: string;
     mimeType: string;
   };
-  aspectRatio: '16:9' | '9:16' | '1:1' | '4:3' | '3:4';
-  enableSound: boolean;
-  resolution: '720p' | '1080p';
 }
 
-// Add VideoGeneratorState to persist form state
 export interface VideoGeneratorState {
-  prompt: {
-    video: string;
-    audio: string;
-  };
-  // Store only serializable data for localStorage
-  imageFile: { base64: string; mimeType: string; } | null;
-  aspectRatio: '16:9' | '9:16' | '1:1' | '4:3' | '3:4';
-  enableSound: boolean;
-  resolution: '720p' | '1080p';
+    prompt: { video: string; audio: string };
+    imageFile: { base64: string; mimeType: string } | null;
+    aspectRatio: '16:9' | '9:16' | '1:1' | '4:3' | '3:4';
+    enableSound: boolean;
+    resolution: '720p' | '1080p';
 }
 
-// FIX: Add missing ImageFile interface for the video generator form.
-export interface ImageFile {
-  base64: string;
-  mimeType: string;
-  previewUrl: string;
+export type VideoGeneratorOrigin = 'storyboard' | 'affiliate' | 'reference' | 'direct';
+
+
+// --- Story Creator ---
+
+export type ActiveTab = 'editor' | 'storyboard' | 'publishingKit';
+
+export interface Character {
+    id: string;
+    name: string;
+    brandName: string;
+    modelName: string;
+    consistency_key: string;
+    material?: string;
+    designLanguage?: string;
+    keyFeatures: string[];
+    actionDNA?: string[];
+    character_personality?: string;
+    physical_details?: string;
+    scale_and_size?: string;
 }
 
-export interface ReferenceFile {
-  id: string;
-  base64: string;
-  mimeType: string;
-  previewUrl: string;
-  type: 'image' | 'video';
-  file: File; // Keep the original file for size/duration checks
+export interface DirectingSettings {
+    sceneStyleSet: string;
+    customSceneStyle: string;
+    locationSet: string;
+    customLocation: string;
+    weatherSet: string;
+    customWeather: string;
+    cameraStyleSet: string;
+    customCameraStyle: string;
+    narratorLanguageSet: string;
+    customNarratorLanguage: string;
+    timeOfDay: string;
+    artStyle: string;
+    soundtrackMood: string;
+    pacing: string;
 }
 
-// Add StoredReferenceFile for serializable data
-export interface StoredReferenceFile {
-  id: string;
-  base64: string;
-  mimeType: string;
-  type: 'image' | 'video';
+export interface StoryboardScene {
+    scene_number: number;
+    scene_title: string;
+    scene_summary: string;
+    character_actions: {
+        character_name: string;
+        action_description: string;
+        consistency_key: string;
+    }[];
+    cinematography: {
+        shot_type: string;
+        camera_angle: string;
+        camera_movement: string;
+    };
+    sound_design: {
+        sfx: string[];
+        ambience: string;
+        narration_script: string;
+        audio_mixing_guide: string;
+    };
+    blueprintPrompt?: string;
+    cinematicPrompt?: string;
 }
 
-// Add ReferenceIdeaState to persist form state
+export interface ThumbnailConcept {
+    concept_title_id: string;
+    concept_title_en: string;
+    concept_description_id: string;
+    concept_description_en: string;
+    image_prompt: string;
+    advanced_prompt_json_id: string;
+    advanced_prompt_json_en: string;
+    concept_caption_id: string;
+    concept_caption_en: string;
+}
+
+export interface PublishingKitData {
+    youtube_title_id: string;
+    youtube_title_en: string;
+    youtube_description_id: string;
+    youtube_description_en: string;
+    youtube_tags_id: string[];
+    youtube_tags_en: string[];
+    affiliate_links: {
+        primary_character_template: string;
+        all_characters_template: string;
+    };
+    thumbnail_concepts: ThumbnailConcept[];
+}
+
+export interface GeneratedPrompts {
+    simple_prompt: string;
+    json_prompt: string;
+}
+
 export interface ReferenceIdeaState {
-  referenceFiles: StoredReferenceFile[];
-  results: GeneratedPrompts | null;
+    referenceFiles: StoredReferenceFile[];
+    results: GeneratedPrompts | null;
 }
 
-// --- Affiliate Creator Types ---
-export type VideoPromptType = 'hook' | 'continuation' | 'closing';
+export interface ThemeSuggestion {
+    category_name: string;
+    themes: string[];
+}
+export interface StoryIdea {
+    title_suggestion: string;
+    script_outline: string;
+}
+export interface ThemeIdeaOptions {
+    contentFormat: string;
+    characterNames: string[];
+    language: string;
+}
+export interface StoryIdeaOptions {
+    contentFormat: string;
+    characterNames: string[];
+    theme: string;
+    language: string;
+}
+
+
+// --- Affiliate Creator ---
 
 export interface GeneratedAffiliateImage {
     id: string;
@@ -86,133 +188,10 @@ export interface AffiliateCreatorState {
     customSpeechStyle: string;
 }
 
-// --- Photo Style Creator Types ---
-export interface PhotoStyleCreatorState {
-    userPhoto: StoredReferenceFile | null;
-    productPhoto: StoredReferenceFile | null;
-    facialExpression: 'surprised' | 'happy' | 'sad';
-    handGesture: 'pointing' | 'waving' | 'thumbs_up';
-    bodyPose: 'standing' | 'sitting' | 'walking';
-    pose: 'relaxed' | 'formal' | 'dynamic';
-    backgroundColor: string;
-    numberOfImages: 3 | 6 | 9;
-    aspectRatio: '1:1' | '9:16' | '16:9';
-}
+export type VideoPromptType = 'hook' | 'continuation' | 'closing';
 
+// --- Speech Generator ---
 
-// --- Story Creator Types ---
-
-export type ActiveTab = 'editor' | 'storyboard' | 'publishingKit';
-
-export interface Character {
-  id: string;
-  name: string;
-  brandName: string;
-  modelName: string;
-  material: string;
-  designLanguage: string;
-  keyFeatures: string[];
-  consistency_key: string;
-  actionDNA: string[];
-  character_personality?: string;
-  physical_details?: string;
-  scale_and_size?: string;
-}
-
-export interface StoryboardScene {
-  scene_number: number;
-  scene_title: string;
-  scene_summary: string;
-  character_actions: {
-    character_name: string;
-    action_description: string;
-    consistency_key: string;
-  }[];
-  cinematography: {
-    shot_type: string;
-    camera_angle: string;
-    camera_movement: string;
-  };
-  sound_design: {
-    sfx: string[];
-    ambience: string;
-    narration_script: string;
-    audio_mixing_guide: string;
-  };
-  blueprintPrompt?: string;
-  cinematicPrompt?: string;
-}
-
-export interface StoryIdea {
-    title_suggestion: string;
-    script_outline: string;
-}
-
-export interface StoryIdeaOptions {
-    contentFormat: string;
-    characterNames: string[];
-    theme: string;
-    language: string;
-}
-
-export interface ThemeSuggestion {
-    category_name: string;
-    themes: string[];
-}
-
-export interface PublishingKitData {
-  youtube_title_id: string;
-  youtube_title_en: string;
-  youtube_description_id: string;
-  youtube_description_en: string;
-
-  youtube_tags_id: string[];
-  youtube_tags_en: string[];
-  affiliate_links: {
-    primary_character_template: string;
-    all_characters_template: string;
-  };
-  thumbnail_concepts: {
-    concept_title_id: string;
-    concept_title_en: string;
-    concept_description_id: string;
-    concept_description_en: string;
-    image_prompt: string;
-    advanced_prompt_json_id: string;
-    advanced_prompt_json_en: string;
-    concept_caption_id: string;
-    concept_caption_en: string;
-  }[];
-}
-
-export interface DirectingSettings {
-  sceneStyleSet: string;
-  customSceneStyle: string;
-  locationSet: string;
-  customLocation: string;
-  weatherSet: string;
-  customWeather: string;
-  cameraStyleSet: string;
-  customCameraStyle: string;
-  narratorLanguageSet: string;
-  customNarratorLanguage: string;
-  timeOfDay: string;
-  artStyle: string;
-  soundtrackMood: string;
-  pacing: string;
-}
-export interface ThemeIdeaOptions {
-    contentFormat: string;
-    characterNames: string[];
-    language: string;
-}
-
-export interface GeneratedPrompts {
-  simple_prompt: string;
-  json_prompt: string;
-}
-
-// --- Speech Generator Types ---
 export type SpeechMode = 'single' | 'multi';
 
 export interface DialogEntry {
@@ -225,4 +204,56 @@ export interface SpeakerConfig {
     id: string;
     name: string;
     voice: string;
+}
+
+// --- Photo Style Creator ---
+
+export type PhotoType = 'artist_model' | 'product' | 'thumbnail';
+
+export interface PhotoStyleCreatorState {
+    photoType: PhotoType;
+    referenceFiles: StoredReferenceFile[];
+    productFiles: StoredReferenceFile[];
+    numberOfImages: number;
+    aspectRatio: '1:1' | '9:16' | '16:9';
+    // Artist/Model
+    prompt: string;
+    facialExpression: string;
+    customFacialExpression: string;
+    handGesture: string;
+    customHandGesture: string;
+    bodyPose: string;
+    customBodyPose: string;
+    pose: string;
+    customPose: string;
+    backgroundColor: string;
+    // Product
+    productDescription: string;
+    productShotType: string;
+    customProductShotType: string;
+    productLighting: string;
+    customProductLighting: string;
+    productBackground: string;
+    customProductBackground: string;
+    // Thumbnail
+    thumbnailTopic: string;
+    thumbnailStyle: string;
+    customThumbnailStyle: string;
+    thumbnailOverlayText: string;
+    thumbnailFont: string;
+    customThumbnailFont: string;
+    thumbnailPalette: string;
+    customThumbnailPalette: string;
+}
+export interface PhotoStyleRecommendations {
+    facialExpression?: string[];
+    handGesture?: string[];
+    bodyPose?: string[];
+    pose?: string[];
+    productShotType?: string[];
+    productLighting?: string[];
+    productBackground?: string[];
+    thumbnailStyle?: string[];
+    thumbnailFont?: string[];
+    thumbnailPalette?: string[];
 }
