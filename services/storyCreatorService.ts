@@ -740,48 +740,67 @@ export const generatePhotoStyleImages = async (
     let promptText = '';
     const parts: any[] = [];
 
+    // --- 1. Add all reference files first ---
+    // This ensures media context is provided before the text prompt.
+    if (state.referenceFiles.length > 0) {
+        state.referenceFiles.forEach(file => {
+            parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
+        });
+    }
+    if (state.productFiles.length > 0) {
+        state.productFiles.forEach(file => {
+            parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
+        });
+    }
+    
+    // --- 2. Build the text prompt with multiple aspect ratio instructions ---
+    // FIX: Changed variable declaration to fix type error.
+    let aspectRatioDescription: string;
+    switch (state.aspectRatio) {
+        case '9:16':
+            aspectRatioDescription = 'a tall, vertical portrait (9:16 aspect ratio)';
+            break;
+        case '16:9':
+            aspectRatioDescription = 'a wide, horizontal landscape (16:9 aspect ratio)';
+            break;
+        case '1:1':
+            aspectRatioDescription = 'a perfect square (1:1 aspect ratio)';
+            break;
+    }
+
+    // Instruction at the very beginning of the text part.
+    promptText = `Your most important task is to generate an image that is ${aspectRatioDescription}. This instruction overrides any visual information from reference images. `;
+
     switch (state.photoType) {
         case 'artist_model':
             if (state.referenceFiles.length > 0) {
-                state.referenceFiles.forEach(file => {
-                    parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
-                });
-                promptText = `A photo of a person based on the reference media provided. `;
+                promptText += `Using the provided reference person, create a new photo. `;
             } else {
-                promptText = `A photo of ${state.prompt}. `;
+                promptText += `Create a photo of ${state.prompt}. `;
             }
             promptText += `The person has a '${getFinalValue(state, 'facialExpression')}' facial expression, is '${getFinalValue(state, 'handGesture')}' their hand, and is in a '${getFinalValue(state, 'bodyPose')}' body pose. The overall pose is '${getFinalValue(state, 'pose')}'. The background is a solid color with the hex code ${state.backgroundColor}.`;
-            
             if (state.productFiles.length > 0) {
-                promptText += ` The person is interacting with the product shown in the second set of reference media.`;
-                state.productFiles.forEach(file => {
-                    parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
-                });
+                promptText += ` The person is interacting with the product shown in the reference media.`;
             }
             break;
 
         case 'product':
-            promptText = `Professional product photography of ${state.productDescription}. The shot is a ${getFinalValue(state, 'productShotType')}. The lighting is ${getFinalValue(state, 'productLighting')}. The background is ${getFinalValue(state, 'productBackground')}.`;
+            promptText += `Generate professional product photography of ${state.productDescription}. The shot is a ${getFinalValue(state, 'productShotType')}. The lighting is ${getFinalValue(state, 'productLighting')}. The background is ${getFinalValue(state, 'productBackground')}.`;
             if (state.productFiles.length > 0) {
-                 state.productFiles.forEach(file => {
-                    parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
-                });
                 promptText += ' The final image should be a variation based on the provided reference product media.';
             }
             break;
 
         case 'thumbnail':
-            promptText = `Create a vibrant, eye-catching YouTube thumbnail about '${state.thumbnailTopic}'. The style should be similar to a popular '${getFinalValue(state, 'thumbnailStyle')}' thumbnail. Use a '${getFinalValue(state, 'thumbnailPalette')}' color palette. The thumbnail MUST include the text '${state.thumbnailOverlayText}' prominently. The font should be '${getFinalValue(state, 'thumbnailFont')}' and easy to read.`;
+            promptText += `Create a vibrant, eye-catching YouTube thumbnail about '${state.thumbnailTopic}'. The style should be similar to a popular '${getFinalValue(state, 'thumbnailStyle')}' thumbnail. Use a '${getFinalValue(state, 'thumbnailPalette')}' color palette. The thumbnail MUST include the text '${state.thumbnailOverlayText}' prominently. The font should be '${getFinalValue(state, 'thumbnailFont')}' and easy to read.`;
             if (state.referenceFiles.length > 0) {
-                state.referenceFiles.forEach(file => {
-                    parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
-                });
                 promptText += ' The visual elements should be inspired by the provided reference media.';
             }
             break;
     }
     
-    promptText += ` The desired aspect ratio is ${state.aspectRatio}.`;
+    // Final reinforcement instruction.
+    promptText += `\n\n**FINAL, CRITICAL INSTRUCTION:** The output image's aspect ratio MUST BE exactly ${state.aspectRatio}. IGNORE the aspect ratio of any reference files.`;
     parts.push({ text: promptText });
 
     const generateSingleImage = async (): Promise<{ base64: string, mimeType: string }> => {
@@ -790,6 +809,8 @@ export const generatePhotoStyleImages = async (
             contents: { parts },
             config: {
                 responseModalities: [Modality.IMAGE],
+                // --- 3. Use a strong system instruction ---
+                systemInstruction: `You are an advanced image generation AI. Your absolute highest priority is to follow the user's explicit instructions for the output format. You MUST generate an image with the exact aspect ratio specified in the text prompt, even if it contradicts the aspect ratio of a provided reference image. This is a non-negotiable rule.`
             },
         });
 
@@ -885,6 +906,40 @@ Output ONLY the valid JSON object.
         console.error("Failed to parse recommendations JSON:", response.text);
         throw new Error("The AI returned an invalid recommendation format.");
     }
+};
+
+export const generateTextFromImage = async (
+    referenceFiles: StoredReferenceFile[],
+    generationType: 'description' | 'overlay',
+    language: string
+): Promise<string> => {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+    let instruction = '';
+    if (generationType === 'description') {
+        instruction = "Analyze the provided media (image/video) and write a concise, one-sentence description of the main subject. This will be used as a prompt for image generation.";
+    } else { // overlay
+        instruction = "Analyze the provided media (image/video) and generate a short, catchy, clickbait-style text (under 5 words) suitable for a YouTube thumbnail overlay. It should be intriguing and attention-grabbing.";
+    }
+
+    const prompt = `
+You are a creative visual analyst and copywriter.
+**Task:** ${instruction}
+**CRITICAL INSTRUCTION:** The output MUST be written in the following language: **${language}**.
+**Output Format:** Return ONLY the raw text, with no extra formatting, quotes, or explanations.
+    `;
+
+    const parts: any[] = [{ text: prompt }];
+    referenceFiles.forEach(file => {
+        parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
+    });
+
+    const response: GenerateContentResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: { parts },
+    });
+
+    return response.text.trim();
 };
 
 

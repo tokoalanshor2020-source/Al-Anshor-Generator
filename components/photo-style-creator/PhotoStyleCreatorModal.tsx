@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, DragEvent } from 'react';
 import { useLocalization, languageMap } from '../../i18n';
 import type { StoredReferenceFile, PhotoStyleCreatorState, PhotoType, PhotoStyleRecommendations, ReferenceFile } from '../../types';
-import { generatePhotoStyleImages, generatePhotoStyleRecommendations } from '../../services/storyCreatorService';
+import { generatePhotoStyleImages, generatePhotoStyleRecommendations, generateTextFromImage } from '../../services/storyCreatorService';
 import { XCircleIcon } from '../icons/XCircleIcon';
 import { UploadIcon } from '../icons/UploadIcon';
 import { PhotoIcon } from '../icons/PhotoIcon';
@@ -10,6 +10,7 @@ import { PlusIcon } from '../icons/PlusIcon';
 import { TrashIcon } from '../icons/TrashIcon';
 import { ChevronLeftIcon } from '../icons/ChevronLeftIcon';
 import { ChevronRightIcon } from '../icons/ChevronRightIcon';
+import { MagicWandIcon } from '../icons/MagicWandIcon';
 
 interface PhotoStyleCreatorModalProps {
     isOpen: boolean;
@@ -73,6 +74,7 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
     
     const [recommendations, setRecommendations] = useState<PhotoStyleRecommendations | null>(null);
     const [isGeneratingRecs, setIsGeneratingRecs] = useState(false);
+    const [autoGeneratingField, setAutoGeneratingField] = useState<string | null>(null);
 
     useEffect(() => {
         if (isOpen) {
@@ -229,6 +231,35 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
         }
     };
 
+    const handleAutoGenerate = async (
+        type: 'description' | 'overlay',
+        targetField: 'prompt' | 'productDescription' | 'thumbnailTopic' | 'thumbnailOverlayText'
+    ) => {
+        let filesToUse: ReferenceFile[] = [];
+        if (targetField === 'productDescription') {
+            filesToUse = localProductFiles;
+        } else {
+            filesToUse = localReferenceFiles;
+        }
+    
+        if (filesToUse.length === 0) {
+            setError(t('photoStyleCreator.errorNoPhoto') as string);
+            return;
+        }
+        
+        setAutoGeneratingField(targetField);
+        setError(null);
+    
+        try {
+            const text = await generateTextFromImage(filesToUse, type, languageMap[language]);
+            handleStateChange(targetField, text as any);
+        } catch (e) {
+            setError(e instanceof Error ? e.message : 'Failed to generate text.');
+        } finally {
+            setAutoGeneratingField(null);
+        }
+    };
+
     const MultiFileUploader: React.FC<{
         label: string;
         type: 'reference' | 'product';
@@ -354,7 +385,12 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                 <MultiFileUploader label={t('photoStyleCreator.artist.referencePhoto') as string} type="reference" />
                 <div>
                      <label className="block text-sm font-medium text-gray-300 mb-2">{t('photoStyleCreator.artist.prompt') as string}</label>
-                    <textarea value={formState.prompt} onChange={e => handleStateChange('prompt', e.target.value)} rows={3} placeholder={t('photoStyleCreator.artist.promptPlaceholder') as string} className="w-full bg-base-300 border-gray-600 rounded-md p-2.5 text-sm" />
+                     <div className="relative">
+                        <textarea value={formState.prompt} onChange={e => handleStateChange('prompt', e.target.value)} rows={3} placeholder={t('photoStyleCreator.artist.promptPlaceholder') as string} className="w-full bg-base-300 border-gray-600 rounded-md p-2.5 text-sm" />
+                        <button type="button" onClick={() => handleAutoGenerate('description', 'prompt')} disabled={!!autoGeneratingField || localReferenceFiles.length === 0} className="absolute top-2 right-2 p-1.5 bg-base-100 text-amber-300 rounded-full hover:bg-base-200/50 disabled:opacity-50 disabled:cursor-not-allowed" title={t('photoStyleCreator.generateWithAi') as string}>
+                            {autoGeneratingField === 'prompt' ? <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div> : <MagicWandIcon className="h-4 w-4" />}
+                        </button>
+                    </div>
                 </div>
                  <MultiFileUploader label={t('photoStyleCreator.product.productPhoto') as string} type="product" />
             </fieldset>
@@ -380,7 +416,12 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                 <MultiFileUploader label={t('photoStyleCreator.product.productPhoto') as string} type="product" />
                 <div>
                      <label className="block text-sm font-medium text-gray-300 mb-2">{t('photoStyleCreator.product.productDescription') as string}</label>
-                    <textarea value={formState.productDescription} onChange={e => handleStateChange('productDescription', e.target.value)} rows={4} placeholder={t('photoStyleCreator.product.productDescriptionPlaceholder') as string} className="w-full bg-base-300 border-gray-600 rounded-md p-2.5 text-sm" />
+                     <div className="relative">
+                        <textarea value={formState.productDescription} onChange={e => handleStateChange('productDescription', e.target.value)} rows={4} placeholder={t('photoStyleCreator.product.productDescriptionPlaceholder') as string} className="w-full bg-base-300 border-gray-600 rounded-md p-2.5 text-sm" />
+                        <button type="button" onClick={() => handleAutoGenerate('description', 'productDescription')} disabled={!!autoGeneratingField || localProductFiles.length === 0} className="absolute top-2 right-2 p-1.5 bg-base-100 text-amber-300 rounded-full hover:bg-base-200/50 disabled:opacity-50 disabled:cursor-not-allowed" title={t('photoStyleCreator.generateWithAi') as string}>
+                            {autoGeneratingField === 'productDescription' ? <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div> : <MagicWandIcon className="h-4 w-4" />}
+                        </button>
+                     </div>
                 </div>
             </fieldset>
 
@@ -400,11 +441,21 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                 <MultiFileUploader label={t('photoStyleCreator.thumbnail.referenceImage') as string} type="reference" />
                 <div>
                      <label className="block text-sm font-medium text-gray-300 mb-2">{t('photoStyleCreator.thumbnail.topic') as string}</label>
-                    <textarea value={formState.thumbnailTopic} onChange={e => handleStateChange('thumbnailTopic', e.target.value)} rows={3} placeholder={t('photoStyleCreator.thumbnail.topicPlaceholder') as string} className="w-full bg-base-300 border-gray-600 rounded-md p-2.5 text-sm" />
+                     <div className="relative">
+                        <textarea value={formState.thumbnailTopic} onChange={e => handleStateChange('thumbnailTopic', e.target.value)} rows={3} placeholder={t('photoStyleCreator.thumbnail.topicPlaceholder') as string} className="w-full bg-base-300 border-gray-600 rounded-md p-2.5 text-sm" />
+                        <button type="button" onClick={() => handleAutoGenerate('description', 'thumbnailTopic')} disabled={!!autoGeneratingField || localReferenceFiles.length === 0} className="absolute top-2 right-2 p-1.5 bg-base-100 text-amber-300 rounded-full hover:bg-base-200/50 disabled:opacity-50 disabled:cursor-not-allowed" title={t('photoStyleCreator.generateWithAi') as string}>
+                            {autoGeneratingField === 'thumbnailTopic' ? <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div> : <MagicWandIcon className="h-4 w-4" />}
+                        </button>
+                    </div>
                 </div>
                 <div>
                      <label className="block text-sm font-medium text-gray-300 mb-2">{t('photoStyleCreator.thumbnail.overlayText') as string}</label>
-                    <input type="text" value={formState.thumbnailOverlayText} onChange={e => handleStateChange('thumbnailOverlayText', e.target.value)} placeholder={t('photoStyleCreator.thumbnail.overlayTextPlaceholder') as string} className="w-full bg-base-300 border-gray-600 rounded-md p-2.5 text-sm" />
+                     <div className="relative">
+                        <input type="text" value={formState.thumbnailOverlayText} onChange={e => handleStateChange('thumbnailOverlayText', e.target.value)} placeholder={t('photoStyleCreator.thumbnail.overlayTextPlaceholder') as string} className="w-full bg-base-300 border-gray-600 rounded-md p-2.5 text-sm" />
+                        <button type="button" onClick={() => handleAutoGenerate('overlay', 'thumbnailOverlayText')} disabled={!!autoGeneratingField || localReferenceFiles.length === 0} className="absolute top-1/2 -translate-y-1/2 right-2 p-1.5 bg-base-100 text-amber-300 rounded-full hover:bg-base-200/50 disabled:opacity-50 disabled:cursor-not-allowed" title={t('photoStyleCreator.generateWithAi') as string}>
+                            {autoGeneratingField === 'thumbnailOverlayText' ? <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div> : <MagicWandIcon className="h-4 w-4" />}
+                        </button>
+                    </div>
                 </div>
             </fieldset>
             
