@@ -244,20 +244,6 @@ export default function App() {
     }
     }, [affiliateCreatorState]);
 
-  useEffect(() => {
-    const styleId = 'modal-styling-rules';
-    if (!document.getElementById(styleId)) {
-        const style = document.createElement('style');
-        style.id = styleId;
-        style.innerHTML = `
-            body.modal-open .main-app-footer {
-                display: none;
-            }
-        `;
-        document.head.appendChild(style);
-    }
-  }, []);
-
   const handleGenerateVideo = useCallback(async (options: GeneratorOptions) => {
     setIsLoading(true);
     setError(null);
