@@ -294,7 +294,8 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                     {files.length === 0 ? (
                         <label htmlFor={fileInputId} className="cursor-pointer flex-grow flex flex-col items-center justify-center p-2 rounded-lg text-center hover:bg-base-300/30 transition-colors">
                             <UploadIcon className="h-8 w-8 text-gray-400"/>
-                            <span className="text-sm mt-1 text-gray-400">{t('photoStyleCreator.uploadPlaceholder') as string}</span>
+                            {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                            <span className="text-sm mt-1 text-gray-400">{String(t('photoStyleCreator.uploadPlaceholder'))}</span>
                         </label>
                     ) : (
                         <div className="relative flex-grow flex items-center justify-center">
@@ -312,10 +313,12 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                     )}
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-700/50">
                         <div className="text-xs text-gray-500">
-                            {files.length > 0 ? `${currentIndex + 1} / ${files.length}` : t('photoStyleCreator.uploadSubtitle') as string}
+                            {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                            {files.length > 0 ? `${currentIndex + 1} / ${files.length}` : String(t('photoStyleCreator.uploadSubtitle'))}
                         </div>
                         <label htmlFor={fileInputId} className="cursor-pointer p-2 rounded-lg text-xs flex items-center gap-1 font-semibold text-brand-light hover:bg-brand-primary/20">
-                            <PlusIcon className="h-4 w-4"/> {t('characterWorkshop.uploadButton') as string}
+                            {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                            <PlusIcon className="h-4 w-4"/> {String(t('characterWorkshop.uploadButton'))}
                         </label>
                     </div>
                 </div>
@@ -351,7 +354,8 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                  <optgroup label={t('photoStyleCreator.standardOptions') as string}>
                     {Object.entries(options).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
                 </optgroup>
-                <option value="custom">{t('photoStyleCreator.custom') as string}</option>
+                {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                <option value="custom">{String(t('photoStyleCreator.custom'))}</option>
             </select>
             {formState[field] === 'custom' && (
                 <input
@@ -366,13 +370,13 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
     );
 
     const RadioGroup: React.FC<{ value: string | number; onChange: (value: any) => void; options: {value: string | number, label: string}[]; }> = ({ value, onChange, options }) => (
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-3 gap-2">
             {options.map(opt => (
                 <button
                     key={opt.value}
                     type="button"
                     onClick={() => onChange(opt.value)}
-                    className={`px-3 py-2.5 text-sm rounded-md flex-1 text-center transition-colors ${value === opt.value ? 'bg-brand-primary text-white font-semibold' : 'bg-base-300 hover:bg-base-200'}`}
+                    className={`px-3 py-2.5 text-sm rounded-md text-center transition-colors ${value === opt.value ? 'bg-brand-primary text-white font-semibold' : 'bg-base-300 hover:bg-base-200'}`}
                 >{opt.label}</button>
             ))}
         </div>
@@ -381,10 +385,12 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
     const renderArtistModelControls = () => (
         <>
             <fieldset className="border-t border-base-300 pt-5 space-y-5">
-                <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{t('photoStyleCreator.groups.subject') as string}</legend>
+                {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{String(t('photoStyleCreator.groups.subject'))}</legend>
                 <MultiFileUploader label={t('photoStyleCreator.artist.referencePhoto') as string} type="reference" />
                 <div>
-                     <label className="block text-sm font-medium text-gray-300 mb-2">{t('photoStyleCreator.artist.prompt') as string}</label>
+                     {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                     <label className="block text-sm font-medium text-gray-300 mb-2">{String(t('photoStyleCreator.artist.prompt'))}</label>
                      <div className="relative">
                         <textarea value={formState.prompt} onChange={e => handleStateChange('prompt', e.target.value)} rows={3} placeholder={t('photoStyleCreator.artist.promptPlaceholder') as string} className="w-full bg-base-300 border-gray-600 rounded-md p-2.5 text-sm" />
                         <button type="button" onClick={() => handleAutoGenerate('description', 'prompt')} disabled={!!autoGeneratingField || localReferenceFiles.length === 0} className="absolute top-2 right-2 p-1.5 bg-base-100 text-amber-300 rounded-full hover:bg-base-200/50 disabled:opacity-50 disabled:cursor-not-allowed" title={t('photoStyleCreator.generateWithAi') as string}>
@@ -396,13 +402,15 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
             </fieldset>
 
             <fieldset className="border-t border-base-300 pt-5 space-y-5">
-                 <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{t('photoStyleCreator.groups.style') as string}</legend>
+                 {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                 <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{String(t('photoStyleCreator.groups.style'))}</legend>
                 <SmartDropdown label={t('photoStyleCreator.artist.facialExpression') as string} field="facialExpression" customField="customFacialExpression" options={t('photoStyleCreator.artist.expressions') as any} recs={recommendations?.facialExpression} />
                 <SmartDropdown label={t('photoStyleCreator.artist.handGesture') as string} field="handGesture" customField="customHandGesture" options={t('photoStyleCreator.artist.gestures') as any} recs={recommendations?.handGesture} />
                 <SmartDropdown label={t('photoStyleCreator.artist.bodyPose') as string} field="bodyPose" customField="customBodyPose" options={t('photoStyleCreator.artist.bodyPoses') as any} recs={recommendations?.bodyPose} />
                 <SmartDropdown label={t('photoStyleCreator.artist.pose') as string} field="pose" customField="customPose" options={t('photoStyleCreator.artist.poses') as any} recs={recommendations?.pose} />
                 <div>
-                     <label className="block text-sm font-medium text-gray-300 mb-2">{t('photoStyleCreator.artist.backgroundColor') as string}</label>
+                     {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                     <label className="block text-sm font-medium text-gray-300 mb-2">{String(t('photoStyleCreator.artist.backgroundColor'))}</label>
                     <input type="color" value={formState.backgroundColor} onChange={e => handleStateChange('backgroundColor', e.target.value)} className="w-full h-12 p-1 bg-base-300 border border-gray-600 rounded-md cursor-pointer" />
                 </div>
             </fieldset>
@@ -412,10 +420,12 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
     const renderProductControls = () => (
         <>
             <fieldset className="border-t border-base-300 pt-5 space-y-5">
-                 <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{t('photoStyleCreator.groups.subject') as string}</legend>
+                 {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                 <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{String(t('photoStyleCreator.groups.subject'))}</legend>
                 <MultiFileUploader label={t('photoStyleCreator.product.productPhoto') as string} type="product" />
                 <div>
-                     <label className="block text-sm font-medium text-gray-300 mb-2">{t('photoStyleCreator.product.productDescription') as string}</label>
+                     {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                     <label className="block text-sm font-medium text-gray-300 mb-2">{String(t('photoStyleCreator.product.productDescription'))}</label>
                      <div className="relative">
                         <textarea value={formState.productDescription} onChange={e => handleStateChange('productDescription', e.target.value)} rows={4} placeholder={t('photoStyleCreator.product.productDescriptionPlaceholder') as string} className="w-full bg-base-300 border-gray-600 rounded-md p-2.5 text-sm" />
                         <button type="button" onClick={() => handleAutoGenerate('description', 'productDescription')} disabled={!!autoGeneratingField || localProductFiles.length === 0} className="absolute top-2 right-2 p-1.5 bg-base-100 text-amber-300 rounded-full hover:bg-base-200/50 disabled:opacity-50 disabled:cursor-not-allowed" title={t('photoStyleCreator.generateWithAi') as string}>
@@ -426,7 +436,8 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
             </fieldset>
 
             <fieldset className="border-t border-base-300 pt-5 space-y-5">
-                 <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{t('photoStyleCreator.groups.style') as string}</legend>
+                 {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                 <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{String(t('photoStyleCreator.groups.style'))}</legend>
                 <SmartDropdown label={t('photoStyleCreator.product.shotType') as string} field="productShotType" customField="customProductShotType" options={t('photoStyleCreator.product.shotTypes') as any} recs={recommendations?.productShotType} />
                 <SmartDropdown label={t('photoStyleCreator.product.lighting') as string} field="productLighting" customField="customProductLighting" options={t('photoStyleCreator.product.lightingOptions') as any} recs={recommendations?.productLighting} />
                 <SmartDropdown label={t('photoStyleCreator.product.background') as string} field="productBackground" customField="customProductBackground" options={t('photoStyleCreator.product.backgroundOptions') as any} recs={recommendations?.productBackground} />
@@ -437,10 +448,12 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
     const renderThumbnailControls = () => (
          <>
             <fieldset className="border-t border-base-300 pt-5 space-y-5">
-                 <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{t('photoStyleCreator.groups.subject') as string}</legend>
+                 {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                 <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{String(t('photoStyleCreator.groups.subject'))}</legend>
                 <MultiFileUploader label={t('photoStyleCreator.thumbnail.referenceImage') as string} type="reference" />
                 <div>
-                     <label className="block text-sm font-medium text-gray-300 mb-2">{t('photoStyleCreator.thumbnail.topic') as string}</label>
+                     {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                     <label className="block text-sm font-medium text-gray-300 mb-2">{String(t('photoStyleCreator.thumbnail.topic'))}</label>
                      <div className="relative">
                         <textarea value={formState.thumbnailTopic} onChange={e => handleStateChange('thumbnailTopic', e.target.value)} rows={3} placeholder={t('photoStyleCreator.thumbnail.topicPlaceholder') as string} className="w-full bg-base-300 border-gray-600 rounded-md p-2.5 text-sm" />
                         <button type="button" onClick={() => handleAutoGenerate('description', 'thumbnailTopic')} disabled={!!autoGeneratingField || localReferenceFiles.length === 0} className="absolute top-2 right-2 p-1.5 bg-base-100 text-amber-300 rounded-full hover:bg-base-200/50 disabled:opacity-50 disabled:cursor-not-allowed" title={t('photoStyleCreator.generateWithAi') as string}>
@@ -449,7 +462,8 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                     </div>
                 </div>
                 <div>
-                     <label className="block text-sm font-medium text-gray-300 mb-2">{t('photoStyleCreator.thumbnail.overlayText') as string}</label>
+                     {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                     <label className="block text-sm font-medium text-gray-300 mb-2">{String(t('photoStyleCreator.thumbnail.overlayText'))}</label>
                      <div className="relative">
                         <input type="text" value={formState.thumbnailOverlayText} onChange={e => handleStateChange('thumbnailOverlayText', e.target.value)} placeholder={t('photoStyleCreator.thumbnail.overlayTextPlaceholder') as string} className="w-full bg-base-300 border-gray-600 rounded-md p-2.5 text-sm" />
                         <button type="button" onClick={() => handleAutoGenerate('overlay', 'thumbnailOverlayText')} disabled={!!autoGeneratingField || localReferenceFiles.length === 0} className="absolute top-1/2 -translate-y-1/2 right-2 p-1.5 bg-base-100 text-amber-300 rounded-full hover:bg-base-200/50 disabled:opacity-50 disabled:cursor-not-allowed" title={t('photoStyleCreator.generateWithAi') as string}>
@@ -460,7 +474,8 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
             </fieldset>
             
             <fieldset className="border-t border-base-300 pt-5 space-y-5">
-                <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{t('photoStyleCreator.groups.style') as string}</legend>
+                {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{String(t('photoStyleCreator.groups.style'))}</legend>
                 <SmartDropdown label={t('photoStyleCreator.thumbnail.style') as string} field="thumbnailStyle" customField="customThumbnailStyle" options={t('photoStyleCreator.thumbnail.styles') as any} recs={recommendations?.thumbnailStyle} />
                 <SmartDropdown label={t('photoStyleCreator.thumbnail.font') as string} field="thumbnailFont" customField="customThumbnailFont" options={t('photoStyleCreator.thumbnail.fonts') as any} recs={recommendations?.thumbnailFont} />
                 <SmartDropdown label={t('photoStyleCreator.thumbnail.palette') as string} field="thumbnailPalette" customField="customThumbnailPalette" options={t('photoStyleCreator.thumbnail.palettes') as any} recs={recommendations?.thumbnailPalette} />
@@ -477,12 +492,15 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                     <div className="flex items-center gap-3">
                         <PhotoIcon className="h-6 w-6 text-teal-400"/>
                         <div>
-                            <h2 className="text-xl font-bold text-teal-400">{t('photoStyleCreator.title') as string}</h2>
-                            <p className="text-sm text-gray-400">{t('photoStyleCreator.description') as string}</p>
+                            {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                            <h2 className="text-xl font-bold text-teal-400">{String(t('photoStyleCreator.title'))}</h2>
+                            {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                            <p className="text-sm text-gray-400">{String(t('photoStyleCreator.description'))}</p>
                         </div>
                     </div>
+                    {/* FIX: Cast result of t() to string to match ReactNode type. */}
                     <button onClick={onClose} className="px-6 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-200 bg-base-300 hover:bg-gray-700">
-                        {t('closeButton') as string}
+                        {String(t('closeButton'))}
                     </button>
                 </div>
             </header>
@@ -491,7 +509,8 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                     {/* Controls */}
                     <aside className="lg:col-span-4 lg:sticky lg:top-28 bg-base-200/50 p-6 rounded-lg border border-base-300 space-y-6">
                         <fieldset className="space-y-4">
-                            <legend className="text-base font-semibold text-gray-200 mb-2">{t('photoStyleCreator.photoType') as string}</legend>
+                            {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                            <legend className="text-base font-semibold text-gray-200 mb-2">{String(t('photoStyleCreator.photoType'))}</legend>
                            <RadioGroup 
                                 value={formState.photoType}
                                 onChange={(v) => handleStateChange('photoType', v as PhotoType)}
@@ -507,12 +526,15 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                         {formState.photoType === 'product' && renderProductControls()}
                         {formState.photoType === 'thumbnail' && renderThumbnailControls()}
                         
-                        {isGeneratingRecs && <p className="text-xs text-amber-400 animate-pulse">{t('photoStyleCreator.generatingRecommendations') as string}</p>}
+                        {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                        {isGeneratingRecs && <p className="text-xs text-amber-400 animate-pulse">{String(t('photoStyleCreator.generatingRecommendations'))}</p>}
                         
                         <fieldset className="border-t border-base-300 pt-5 space-y-5">
-                            <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{t('photoStyleCreator.groups.output') as string}</legend>
+                            {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                            <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{String(t('photoStyleCreator.groups.output'))}</legend>
                             <div>
-                                 <label className="block text-sm font-medium text-gray-300 mb-2">{t('photoStyleCreator.shared.numberOfImages') as string}</label>
+                                 {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                                 <label className="block text-sm font-medium text-gray-300 mb-2">{String(t('photoStyleCreator.shared.numberOfImages'))}</label>
                                 <RadioGroup 
                                     value={formState.numberOfImages} 
                                     onChange={(v) => handleStateChange('numberOfImages', v)} 
@@ -520,7 +542,8 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                                 />
                             </div>
                              <div>
-                                 <label className="block text-sm font-medium text-gray-300 mb-2">{t('photoStyleCreator.shared.aspectRatio') as string}</label>
+                                 {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                                 <label className="block text-sm font-medium text-gray-300 mb-2">{String(t('photoStyleCreator.shared.aspectRatio'))}</label>
                                  <RadioGroup
                                     value={formState.aspectRatio}
                                     onChange={(v) => handleStateChange('aspectRatio', v)}
@@ -528,13 +551,16 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                                         { value: '1:1', label: '1:1' },
                                         { value: '9:16', label: '9:16' },
                                         { value: '16:9', label: '16:9' },
+                                        { value: '3:4', label: '3:4' },
+                                        { value: '4:3', label: '4:3' },
                                     ]}
                                 />
                             </div>
                         </fieldset>
 
                         <div className="pt-2">
-                           <button onClick={handleGenerate} disabled={isLoading} className="w-full py-3.5 text-lg bg-brand-primary hover:bg-brand-dark text-white font-bold rounded-lg disabled:opacity-50">{isLoading ? t('photoStyleCreator.generating') : t('photoStyleCreator.generate') as string}</button>
+                           {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                           <button onClick={handleGenerate} disabled={isLoading} className="w-full py-3.5 text-lg bg-brand-primary hover:bg-brand-dark text-white font-bold rounded-lg disabled:opacity-50">{isLoading ? String(t('photoStyleCreator.generating')) : String(t('photoStyleCreator.generate'))}</button>
                         </div>
                     </aside>
                     {/* Generated Images */}
@@ -542,7 +568,8 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                         {isLoading ? (
                             <div className="text-center">
                                 <svg className="animate-spin mx-auto h-12 w-12 text-brand-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                <p className="mt-4 text-gray-300">{t('photoStyleCreator.generating') as string}</p>
+                                {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                                <p className="mt-4 text-gray-300">{String(t('photoStyleCreator.generating'))}</p>
                             </div>
                         ) : error ? (
                              <div className="text-center text-red-400 p-4 bg-red-900/20 rounded-lg">{error}</div>
@@ -565,8 +592,10 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                         ) : (
                             <div className="text-center text-gray-500">
                                 <div className="text-indigo-400 text-5xl opacity-50 mb-4">✨</div>
-                                <h3 className="text-xl font-semibold text-gray-300">{t('photoStyleCreator.readyText') as string}</h3>
-                                <p className="text-sm">{t('photoStyleCreator.readySubtext') as string}</p>
+                                {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                                <h3 className="text-xl font-semibold text-gray-300">{String(t('photoStyleCreator.readyText'))}</h3>
+                                {/* FIX: Cast result of t() to string to match ReactNode type. */}
+                                <p className="text-sm">{String(t('photoStyleCreator.readySubtext'))}</p>
                             </div>
                         )}
                     </div>

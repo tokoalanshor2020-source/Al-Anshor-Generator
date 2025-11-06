@@ -413,7 +413,8 @@ const enTranslations: Translations = {
       types: {
         artist_model: "Artist/Model",
         product: "Product",
-        thumbnail: "Thumbnail"
+        thumbnail: "Thumbnail",
+        change_aspect_ratio: "Change Aspect Ratio"
       },
       generate: "Generate",
       generating: "Generating...",
@@ -540,6 +541,12 @@ const enTranslations: Translations = {
       shared: {
         numberOfImages: "Number of Images",
         aspectRatio: "Aspect Ratio"
+      },
+
+      change_aspect_ratio: {
+        label: "Change Aspect Ratio",
+        uploadLabel: "Image to change",
+        errorNoFile: "Please upload an image to change its aspect ratio.",
       }
     },
     affiliateCreator: {
@@ -1007,7 +1014,8 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
       types: {
           artist_model: "Artis/Model",
           product: "Produk",
-          thumbnail: "Thumbnail"
+          thumbnail: "Thumbnail",
+          change_aspect_ratio: "Ubah Aspek Rasio"
       },
       generate: "Hasilkan",
       generating: "Menghasilkan...",
@@ -1134,6 +1142,12 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
       shared: {
         numberOfImages: "Jumlah Gambar",
         aspectRatio: "Rasio Aspek"
+      },
+
+      change_aspect_ratio: {
+        label: "Ubah Aspek Rasio",
+        uploadLabel: "Gambar yang akan diubah",
+        errorNoFile: "Silakan unggah gambar untuk mengubah rasio aspeknya.",
       }
     },
     affiliateCreator: {

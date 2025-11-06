@@ -215,7 +215,7 @@ export interface PhotoStyleCreatorState {
     referenceFiles: StoredReferenceFile[];
     productFiles: StoredReferenceFile[];
     numberOfImages: number;
-    aspectRatio: '1:1' | '9:16' | '16:9';
+    aspectRatio: '1:1' | '9:16' | '16:9' | '3:4' | '4:3';
     // Artist/Model
     prompt: string;
     facialExpression: string;

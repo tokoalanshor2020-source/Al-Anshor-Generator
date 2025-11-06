@@ -737,7 +737,7 @@ export const generatePhotoStyleImages = async (
 ): Promise<{ base64: string, mimeType: string }[]> => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-    // --- 1. Build the core creative prompt text (without aspect ratio instructions) ---
+    // --- 1. Build the core creative prompt text ---
     let creativePrompt = '';
     switch (state.photoType) {
         case 'artist_model':
@@ -761,35 +761,63 @@ export const generatePhotoStyleImages = async (
 
         case 'thumbnail':
             creativePrompt += `Create a vibrant, eye-catching YouTube thumbnail about '${state.thumbnailTopic}'. The style should be similar to a popular '${getFinalValue(state, 'thumbnailStyle')}' thumbnail. Use a '${getFinalValue(state, 'thumbnailPalette')}' color palette. The thumbnail MUST include the text '${state.thumbnailOverlayText}' prominently. The font should be '${getFinalValue(state, 'thumbnailFont')}' and easy to read.`;
-            if (state.referenceFiles.length > 0) {
-                creativePrompt += ' The visual elements should be inspired by the provided reference media.';
-            }
             break;
     }
 
-    const hasReferenceImages = state.referenceFiles.length > 0 || state.productFiles.length > 0;
+    const allReferenceFiles = [...state.referenceFiles, ...state.productFiles];
+    const hasReferenceImages = allReferenceFiles.length > 0;
 
-    if (hasReferenceImages) {
-        // --- Case 1: Reference images exist. Use gemini-2.5-flash-image with a very strong prompt. ---
-        // This model generates one image per call, so we need to loop.
-        const parts: any[] = [];
-        state.referenceFiles.forEach(file => {
-            parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
+    // --- 2. Smart Model Selection Logic ---
+    if (!hasReferenceImages) {
+        // --- NO REFERENCE IMAGES: Use Imagen for guaranteed aspect ratio across all modes ---
+        const response = await ai.models.generateImages({
+            model: 'imagen-4.0-generate-001',
+            prompt: `Professional, ultra-realistic, 8k, cinematic lighting, vibrant colors. ${creativePrompt}`,
+            config: {
+                numberOfImages: state.numberOfImages,
+                outputMimeType: 'image/jpeg',
+                aspectRatio: state.aspectRatio as any,
+            }
         });
-        state.productFiles.forEach(file => {
-            parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
+
+        if (!response.generatedImages || response.generatedImages.length === 0) {
+            throw new Error("Image generation with Imagen failed, no images were returned.");
+        }
+
+        return response.generatedImages.map(img => {
+            if (!img.image?.imageBytes) {
+                 throw new Error("One of the generated images from Imagen was empty.");
+            }
+            return { base64: img.image.imageBytes, mimeType: 'image/jpeg' };
         });
+        
+    } else {
+        // --- WITH REFERENCE IMAGES: Use Gemini Flash with a much stronger, imperative prompt ---
+        let finalCreativePrompt = creativePrompt;
+        
+        if (state.photoType === 'thumbnail') {
+            finalCreativePrompt = `
+            **Task:** Generate a NEW, ORIGINAL YouTube thumbnail inspired by the reference image.
+            **Instruction:** Do NOT edit, modify, or copy the reference image directly. Your task is to create a completely new image that captures the theme and subject matter of the creative brief below. Use a different background, composition, and style.
+            
+            **Creative Brief:**
+            ${creativePrompt}
+            `;
+        }
+
         const reinforcedPrompt = `
-**CRITICAL TASK: Generate an image with a SPECIFIC aspect ratio.**
-*   **Required Aspect Ratio:** ${state.aspectRatio}
-*   **Instruction:** Your primary and most important task is to generate an image with the exact aspect ratio specified above. You MUST IGNORE the aspect ratio of any provided reference images and strictly adhere to the ${state.aspectRatio} format. This instruction overrides all other visual cues from the references.
+IMPERATIVE COMMAND: The final generated image MUST have an aspect ratio of exactly ${state.aspectRatio}. This is the highest priority, non-negotiable rule. Absolutely ignore the aspect ratio of any provided reference images. The output dimensions must match ${state.aspectRatio}.
 
-**Creative Brief:**
-${creativePrompt}
+---
 
-**Final Reminder:** The output image's final aspect ratio must be ${state.aspectRatio}.
+CREATIVE TASK:
+${finalCreativePrompt}
         `;
-        parts.push({ text: reinforcedPrompt });
+        
+        const parts: any[] = [{ text: reinforcedPrompt }];
+        allReferenceFiles.forEach(file => {
+            parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
+        });
 
         const generateSingleImageWithFlash = async (): Promise<{ base64: string, mimeType: string }> => {
             const response: GenerateContentResponse = await ai.models.generateContent({
@@ -813,34 +841,9 @@ ${creativePrompt}
 
         const promises = Array(state.numberOfImages).fill(null).map(() => generateSingleImageWithFlash());
         return Promise.all(promises);
-
-    } else {
-        // --- Case 2: No reference images. Use imagen for reliable aspect ratio control. ---
-        // This model can generate multiple images in one call.
-        const aspectRatioForImagen = state.aspectRatio as '1:1' | '9:16' | '16:9';
-
-        const response = await ai.models.generateImages({
-            model: 'imagen-4.0-generate-001',
-            prompt: `professional photo, hyper-realistic, high detail, cinematic lighting. ${creativePrompt}`,
-            config: {
-                numberOfImages: state.numberOfImages,
-                outputMimeType: 'image/jpeg',
-                aspectRatio: aspectRatioForImagen,
-            }
-        });
-
-        if (!response.generatedImages || response.generatedImages.length === 0) {
-            throw new Error("Image generation with Imagen failed, no images were returned.");
-        }
-
-        return response.generatedImages.map(img => {
-            if (!img.image?.imageBytes) {
-                 throw new Error("One of the generated images was empty.");
-            }
-            return { base64: img.image.imageBytes, mimeType: 'image/jpeg' };
-        });
     }
 };
+
 
 export const generatePhotoStyleRecommendations = async (
     referenceFiles: StoredReferenceFile[],
