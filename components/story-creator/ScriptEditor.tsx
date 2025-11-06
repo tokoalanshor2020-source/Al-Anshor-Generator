@@ -8,6 +8,7 @@ import { FilmIcon } from '../icons/FilmIcon';
 import { ReferenceIdeaModal } from './ReferenceIdeaModal';
 import { ShoppingCartIcon } from '../icons/ShoppingCartIcon';
 import { SpeakerWaveIcon } from '../icons/SpeakerWaveIcon';
+import { PhotoIcon } from '../icons/PhotoIcon';
 
 
 interface ScriptEditorProps {
@@ -32,13 +33,15 @@ interface ScriptEditorProps {
     setIsAffiliateCreatorModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
     isSpeechModalOpen: boolean;
     setIsSpeechModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    isPhotoStyleModalOpen: boolean;
+    setIsPhotoStyleModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     const { t } = useLocalization();
     const [isDirectorBridgeOpen, setIsDirectorBridgeOpen] = React.useState(false);
     
-    const { isReferenceIdeaModalOpen, setIsReferenceIdeaModalOpen, setIsAffiliateCreatorModalOpen, setIsSpeechModalOpen } = props;
+    const { isReferenceIdeaModalOpen, setIsReferenceIdeaModalOpen, setIsAffiliateCreatorModalOpen, setIsSpeechModalOpen, setIsPhotoStyleModalOpen } = props;
 
     return (
         <div className="p-6">
@@ -64,6 +67,18 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
                     >
                         <FilmIcon />
                         {t('storyCreator.openReferenceIdea') as string}
+                    </button>
+                </div>
+
+                <div className="text-center p-4 bg-base-300/50 rounded-lg border-2 border-dashed border-teal-500">
+                    <h3 className="text-lg font-bold text-teal-400">{t('photoStyleCreator.title') as string}</h3>
+                    <p className="text-gray-400 text-sm mb-4">{t('photoStyleCreator.description') as string}</p>
+                    <button
+                        onClick={() => setIsPhotoStyleModalOpen(true)}
+                        className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700"
+                    >
+                        <PhotoIcon />
+                        {t('photoStyleCreator.buttonText') as string}
                     </button>
                 </div>
 

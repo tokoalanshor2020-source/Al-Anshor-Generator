@@ -36,6 +36,8 @@ interface MainContentProps {
     setIsAffiliateCreatorModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
     isSpeechModalOpen: boolean;
     setIsSpeechModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    isPhotoStyleModalOpen: boolean;
+    setIsPhotoStyleModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const MainContent: React.FC<MainContentProps> = ({ activeTab, setActiveTab, publishingKit, ...props }) => {
@@ -51,7 +53,7 @@ export const MainContent: React.FC<MainContentProps> = ({ activeTab, setActiveTa
     );
 
     return (
-        <main className="w-full md:w-2/3 lg:w-3/4 bg-base-200/50 rounded-xl border border-base-300">
+        <>
             <div className="border-b border-base-300 flex">
                 <TabButton tabId="editor" label={t('storyCreator.storyEditor') as string} />
                 <TabButton tabId="storyboard" label={t('storyCreator.storyboard') as string} />
@@ -68,6 +70,6 @@ export const MainContent: React.FC<MainContentProps> = ({ activeTab, setActiveTa
                 kitData={publishingKit}
                 {...props}
             />}
-        </main>
+        </>
     );
 };

@@ -1,6 +1,6 @@
 // services/storyCreatorService.ts
 import { GoogleGenAI, Type, GenerateContentResponse, Modality } from "@google/genai";
-import type { Character, StoryboardScene, DirectingSettings, PublishingKitData, StoryIdea, ThemeSuggestion, ThemeIdeaOptions, StoryIdeaOptions, GeneratedPrompts, ReferenceFile, GeneratedAffiliateImage, AffiliateCreatorState, VideoPromptType, StoredReferenceFile } from '../types';
+import type { Character, StoryboardScene, DirectingSettings, PublishingKitData, StoryIdea, ThemeSuggestion, ThemeIdeaOptions, StoryIdeaOptions, GeneratedPrompts, ReferenceFile, GeneratedAffiliateImage, AffiliateCreatorState, VideoPromptType, StoredReferenceFile, PhotoStyleCreatorState } from '../types';
 import { languageMap } from '../i18n';
 
 
@@ -715,6 +715,66 @@ export const generateReferenceImage = async (
     }
     return { base64: image.image.imageBytes, mimeType: 'image/jpeg' };
 };
+
+// --- Photo Style Creator Service Functions ---
+
+export const generatePhotoStyleImages = async (
+    state: PhotoStyleCreatorState
+): Promise<{ base64: string, mimeType: string }[]> => {
+    if (!state.userPhoto) {
+        throw new Error("User photo is required.");
+    }
+
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    let promptText = `A photo of a person based on the first reference image. The person has a '${state.facialExpression}' facial expression, is '${state.handGesture}' their hand, and is in a '${state.bodyPose}' body pose. The overall pose is '${state.pose}'. The background is a solid color with the hex code ${state.backgroundColor}. The desired aspect ratio is ${state.aspectRatio}.`;
+
+    const parts: any[] = [{
+        inlineData: {
+            mimeType: state.userPhoto.mimeType,
+            data: state.userPhoto.base64
+        }
+    }];
+
+    if (state.productPhoto) {
+        promptText += ` The person is interacting with the product shown in the second reference image.`;
+        parts.push({
+            inlineData: {
+                mimeType: state.productPhoto.mimeType,
+                data: state.productPhoto.base64
+            }
+        });
+    }
+
+    parts.push({ text: promptText });
+
+    const generateSingleImage = async (): Promise<{ base64: string, mimeType: string }> => {
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: { parts },
+            config: {
+                responseModalities: [Modality.IMAGE],
+            },
+        });
+
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+
+        if (imagePart && imagePart.inlineData) {
+            return { base64: imagePart.inlineData.data, mimeType: imagePart.inlineData.mimeType };
+        } else {
+            const textResponse = response.text?.trim();
+            if (textResponse) {
+                 throw new Error(`Image generation failed. Model returned text: ${textResponse}`);
+            }
+            throw new Error("Image generation failed. The model did not return an image.");
+        }
+    };
+    
+    const promises = Array(state.numberOfImages).fill(null).map(() => generateSingleImage());
+    
+    return Promise.all(promises);
+};
+
 
 // --- Affiliate Creator Service Functions ---
 

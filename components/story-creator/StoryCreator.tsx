@@ -36,6 +36,8 @@ interface StoryCreatorProps {
     setIsAffiliateCreatorModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
     isSpeechModalOpen: boolean;
     setIsSpeechModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    isPhotoStyleModalOpen: boolean;
+    setIsPhotoStyleModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const StoryCreator: React.FC<StoryCreatorProps> = (props) => {
@@ -132,40 +134,44 @@ export const StoryCreator: React.FC<StoryCreatorProps> = (props) => {
     }, [storyboard, characters, logline, t, setPublishingKit, setActiveTab]);
 
     return (
-        <div className="flex flex-col md:flex-row gap-6 md:items-start">
-            <Sidebar
-                characters={characters}
-                setCharacters={setCharacters}
-                onNewStory={handleNewStoryClick}
-                storyboard={storyboard}
-                onGeneratePublishingKit={handleGeneratePublishingKit}
-                isGeneratingKit={isGeneratingKit}
-            />
-            <MainContent
-                {...props}
-                logline={logline}
-                setLogline={setLogline}
-                scenario={scenario}
-                setScenario={setScenario}
-                sceneCount={sceneCount}
-                setSceneCount={setSceneCount}
-                isGenerating={isGenerating}
-                onGenerateStoryboard={handleGenerateStoryboard}
-                storyboard={storyboard}
-                error={error}
-                onProceedToVideo={onProceedToVideo}
-                characters={characters}
-                directingSettings={directingSettings}
-                setDirectingSettings={setDirectingSettings}
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                onUpdateScene={props.onUpdateScene}
-                publishingKit={publishingKit}
-                referenceIdeaState={referenceIdeaState}
-                setReferenceIdeaState={setReferenceIdeaState}
-                isReferenceIdeaModalOpen={isReferenceIdeaModalOpen}
-                setIsReferenceIdeaModalOpen={setIsReferenceIdeaModalOpen}
-            />
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+            <aside className="md:col-span-4 lg:col-span-3 space-y-6 md:sticky md:top-28 md:self-start md:max-h-[calc(100vh-8rem)] md:overflow-y-auto pr-2 pb-6">
+                <Sidebar
+                    characters={characters}
+                    setCharacters={setCharacters}
+                    onNewStory={handleNewStoryClick}
+                    storyboard={storyboard}
+                    onGeneratePublishingKit={handleGeneratePublishingKit}
+                    isGeneratingKit={isGeneratingKit}
+                />
+            </aside>
+            <main className="md:col-span-8 lg:col-span-9 bg-base-200/50 rounded-xl border border-base-300">
+                <MainContent
+                    {...props}
+                    logline={logline}
+                    setLogline={setLogline}
+                    scenario={scenario}
+                    setScenario={setScenario}
+                    sceneCount={sceneCount}
+                    setSceneCount={setSceneCount}
+                    isGenerating={isGenerating}
+                    onGenerateStoryboard={handleGenerateStoryboard}
+                    storyboard={storyboard}
+                    error={error}
+                    onProceedToVideo={onProceedToVideo}
+                    characters={characters}
+                    directingSettings={directingSettings}
+                    setDirectingSettings={setDirectingSettings}
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                    onUpdateScene={props.onUpdateScene}
+                    publishingKit={publishingKit}
+                    referenceIdeaState={referenceIdeaState}
+                    setReferenceIdeaState={setReferenceIdeaState}
+                    isReferenceIdeaModalOpen={isReferenceIdeaModalOpen}
+                    setIsReferenceIdeaModalOpen={setIsReferenceIdeaModalOpen}
+                />
+            </main>
             {isConfirmOpen && (
                 <ConfirmationModal
                     title={confirmProps.title}

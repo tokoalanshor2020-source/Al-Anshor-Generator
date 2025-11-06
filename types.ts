@@ -86,6 +86,19 @@ export interface AffiliateCreatorState {
     customSpeechStyle: string;
 }
 
+// --- Photo Style Creator Types ---
+export interface PhotoStyleCreatorState {
+    userPhoto: StoredReferenceFile | null;
+    productPhoto: StoredReferenceFile | null;
+    facialExpression: 'surprised' | 'happy' | 'sad';
+    handGesture: 'pointing' | 'waving' | 'thumbs_up';
+    bodyPose: 'standing' | 'sitting' | 'walking';
+    pose: 'relaxed' | 'formal' | 'dynamic';
+    backgroundColor: string;
+    numberOfImages: 3 | 6 | 9;
+    aspectRatio: '1:1' | '9:16' | '16:9';
+}
+
 
 // --- Story Creator Types ---
 

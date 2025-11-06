@@ -405,6 +405,49 @@ const enTranslations: Translations = {
       useJsonPromptButton: "Generate Video with JSON Prompt",
       placeholder: "Upload reference media and click 'Analyze' to see results here."
     },
+    photoStyleCreator: {
+      title: "Photo Style Creator",
+      description: "Generate a series of stylized photos based on your image.",
+      buttonText: "Create Photo Style",
+      yourPhoto: "1. Your Photo (Required)",
+      productPhoto: "2. Product Photo (Optional)",
+      facialExpression: "3. Facial Expression",
+      handGesture: "4. Hand Gesture",
+      bodyPose: "5. Body Pose",
+      pose: "6. Pose",
+      backgroundColor: "7. Background Color",
+      numberOfImages: "8. Number of Images",
+      aspectRatio: "9. Aspect Ratio",
+      generate: "Generate",
+      generating: "Generating...",
+      readyText: "Your photobooth is ready",
+      readySubtext: "Adjust the controls on the left and click 'Generate' to see the magic happen.",
+      uploadPlaceholder: "Upload a file or drag and drop",
+      uploadSubtitle: "PNG, JPG, WEBP up to 10MB",
+      noProductPlaceholder: "No Product",
+      noProductSubtext: "Drag a product photo here",
+      expressions: {
+          surprised: "Surprised",
+          happy: "Happy",
+          sad: "Sad"
+      },
+      gestures: {
+          pointing: "Pointing",
+          waving: "Waving",
+          thumbs_up: "Thumbs Up"
+      },
+      bodyPoses: {
+          standing: "Standing",
+          sitting: "Sitting",
+          walking: "Walking"
+      },
+      poses: {
+          relaxed: "Relaxed",
+          formal: "Formal",
+          dynamic: "Dynamic"
+      },
+      errorNoPhoto: "Please upload your photo to generate images."
+  },
     affiliateCreator: {
         title: "Affiliate Video Creator",
         description: "Generate a consistent set of images for your affiliate content.",
@@ -862,6 +905,49 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
       useJsonPromptButton: "Hasilkan Video dengan Prompt JSON",
       placeholder: "Unggah media referensi dan klik 'Analisa' untuk melihat hasilnya di sini."
     },
+    photoStyleCreator: {
+      title: "Buat Gaya Foto",
+      description: "Hasilkan serangkaian foto bergaya berdasarkan gambar Anda.",
+      buttonText: "Buat Gaya Foto",
+      yourPhoto: "1. Foto Anda (Wajib)",
+      productPhoto: "2. Foto Produk (Opsional)",
+      facialExpression: "3. Ekspresi Wajah",
+      handGesture: "4. Gerakan Tangan",
+      bodyPose: "5. Pose Tubuh",
+      pose: "6. Gaya",
+      backgroundColor: "7. Warna Latar",
+      numberOfImages: "8. Jumlah Gambar",
+      aspectRatio: "9. Rasio Aspek",
+      generate: "Hasilkan",
+      generating: "Menghasilkan...",
+      readyText: "Photobooth Anda sudah siap",
+      readySubtext: "Sesuaikan kontrol di sebelah kiri dan klik 'Hasilkan' untuk melihat keajaiban terjadi.",
+      uploadPlaceholder: "Unggah file atau seret dan lepas",
+      uploadSubtitle: "PNG, JPG, WEBP hingga 10MB",
+      noProductPlaceholder: "Tidak Ada Produk",
+      noProductSubtext: "Seret foto produk di sini",
+      expressions: {
+          surprised: "Terkejut",
+          happy: "Senang",
+          sad: "Sedih"
+      },
+      gestures: {
+          pointing: "Menunjuk",
+          waving: "Melambai",
+          thumbs_up: "Jempol ke Atas"
+      },
+      bodyPoses: {
+          standing: "Berdiri",
+          sitting: "Duduk",
+          walking: "Berjalan"
+      },
+      poses: {
+          relaxed: "Santai",
+          formal: "Formal",
+          dynamic: "Dinamis"
+      },
+      errorNoPhoto: "Silakan unggah foto Anda untuk menghasilkan gambar."
+  },
     affiliateCreator: {
         title: "Pembuat Video Afiliasi",
         description: "Hasilkan serangkaian gambar yang konsisten untuk konten afiliasi Anda.",
