@@ -58,6 +58,15 @@ export const ReferenceIdeaModal: React.FC<ReferenceIdeaModalProps> = ({ isOpen, 
 
     const { referenceFiles: storedFiles, results } = referenceIdeaState;
 
+    useEffect(() => {
+        if (isOpen) {
+            document.body.classList.add('modal-open');
+        }
+        return () => {
+            document.body.classList.remove('modal-open');
+        };
+    }, [isOpen]);
+
     const handleClose = () => {
         onClose();
     };

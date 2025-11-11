@@ -83,6 +83,14 @@ export const AffiliateCreatorModal: React.FC<AffiliateCreatorModalProps> = ({
     
     const { generatedImages, numberOfImages, model, vibe, customVibe, productDescription, aspectRatio, narratorLanguage, customNarratorLanguage, speechStyle, customSpeechStyle } = affiliateCreatorState;
     
+    useEffect(() => {
+        if (isOpen) {
+            document.body.classList.add('modal-open');
+        }
+        return () => {
+            document.body.classList.remove('modal-open');
+        };
+    }, [isOpen]);
 
     // Sync local state with persisted state when modal opens
     useEffect(() => {

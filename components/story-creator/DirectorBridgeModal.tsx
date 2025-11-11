@@ -43,6 +43,15 @@ export const DirectorBridgeModal: React.FC<DirectorBridgeModalProps> = (props) =
     
     const canGenerateStoryboard = props.logline.trim() !== '' && props.scenario.trim() !== '';
 
+    useEffect(() => {
+        if (props.isOpen) {
+            document.body.classList.add('modal-open');
+        }
+        return () => {
+            document.body.classList.remove('modal-open');
+        };
+    }, [props.isOpen]);
+
     const fetchThemeIdeas = useCallback(async (format: string, chars: string[]) => {
         if (format === '' || chars.length === 0) return;
         setIsGeneratingThemes(true);

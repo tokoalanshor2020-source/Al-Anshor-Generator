@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useLocalization } from '../i18n';
 import { XCircleIcon } from './icons/XCircleIcon';
 import { RocketIcon } from './icons/RocketIcon';
@@ -30,6 +30,13 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ onClose }) => {
     const workflow2 = tutorial.workflow2 as any;
     const workflow3 = tutorial.workflow3 as any;
     const workflow4 = tutorial.workflow4 as any;
+
+    useEffect(() => {
+        document.body.classList.add('modal-open');
+        return () => {
+            document.body.classList.remove('modal-open');
+        };
+    }, []);
 
 
     return (
