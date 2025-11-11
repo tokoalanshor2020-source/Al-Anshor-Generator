@@ -59,6 +59,79 @@ const initialPhotoStyleCreatorState: PhotoStyleCreatorState = {
     customThumbnailPalette: '',
 };
 
+
+// --- Helper Components (Moved Outside Main Component) ---
+
+interface SmartDropdownProps<K extends keyof PhotoStyleCreatorState> {
+    label: string;
+    field: K;
+    customField: K;
+    options: Record<string, string>;
+    recs?: string[];
+    formState: PhotoStyleCreatorState;
+    handleStateChange: <F extends keyof PhotoStyleCreatorState>(key: F, value: PhotoStyleCreatorState[F]) => void;
+    t: (key: string) => string;
+}
+
+const SmartDropdown = <K extends keyof PhotoStyleCreatorState>({
+    label,
+    field,
+    customField,
+    options,
+    recs,
+    formState,
+    handleStateChange,
+    t
+}: SmartDropdownProps<K>) => (
+    <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">{label}</label>
+        <select
+            value={formState[field] as string}
+            onChange={e => handleStateChange(field, e.target.value as any)}
+            className="w-full bg-base-300 border-gray-600 rounded-md p-2.5 text-sm text-gray-200"
+        >
+            {recs && recs.length > 0 && (
+                <optgroup label={t('photoStyleCreator.aiRecommendations')}>
+                    {recs.map(rec => <option key={rec} value={rec}>{rec}</option>)}
+                </optgroup>
+            )}
+            <optgroup label={t('photoStyleCreator.standardOptions')}>
+                {Object.entries(options).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+            </optgroup>
+            <option value="custom">{t('photoStyleCreator.custom')}</option>
+        </select>
+        {formState[field] === 'custom' && (
+            <input
+                type="text"
+                value={formState[customField] as string}
+                onChange={e => handleStateChange(customField, e.target.value as any)}
+                placeholder={t('photoStyleCreator.customPlaceholder')}
+                className="w-full bg-base-200 border-gray-500 rounded-md p-2.5 text-sm mt-2"
+            />
+        )}
+    </div>
+);
+
+interface RadioGroupProps {
+    value: string | number;
+    onChange: (value: any) => void;
+    options: { value: string | number; label: string }[];
+}
+
+const RadioGroup: React.FC<RadioGroupProps> = ({ value, onChange, options }) => (
+    <div className="grid grid-cols-3 gap-2">
+        {options.map(opt => (
+            <button
+                key={opt.value}
+                type="button"
+                onClick={() => onChange(opt.value)}
+                className={`px-3 py-2.5 text-sm rounded-md text-center transition-colors ${value === opt.value ? 'bg-brand-primary text-white font-semibold' : 'bg-base-300 hover:bg-base-200'}`}
+            >{opt.label}</button>
+        ))}
+    </div>
+);
+
+
 export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ isOpen, onClose }) => {
     const { t, language } = useLocalization();
     const [formState, setFormState] = useState<PhotoStyleCreatorState>(initialPhotoStyleCreatorState);
@@ -326,62 +399,6 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
         );
     };
     
-    const SmartDropdown = <K extends keyof PhotoStyleCreatorState>({
-        label,
-        field,
-        customField,
-        options,
-        recs,
-    }: {
-        label: string;
-        field: K;
-        customField: K;
-        options: Record<string, string>;
-        recs?: string[];
-    }) => (
-        <div>
-             <label className="block text-sm font-medium text-gray-300 mb-2">{label}</label>
-            <select
-                value={formState[field] as string}
-                onChange={e => handleStateChange(field, e.target.value as any)}
-                className="w-full bg-base-300 border-gray-600 rounded-md p-2.5 text-sm text-gray-200"
-            >
-                {recs && recs.length > 0 && (
-                    <optgroup label={t('photoStyleCreator.aiRecommendations') as string}>
-                        {recs.map(rec => <option key={rec} value={rec}>{rec}</option>)}
-                    </optgroup>
-                )}
-                 <optgroup label={t('photoStyleCreator.standardOptions') as string}>
-                    {Object.entries(options).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-                </optgroup>
-                {/* FIX: Cast result of t() to string to match ReactNode type. */}
-                <option value="custom">{String(t('photoStyleCreator.custom'))}</option>
-            </select>
-            {formState[field] === 'custom' && (
-                <input
-                    type="text"
-                    value={formState[customField] as string}
-                    onChange={e => handleStateChange(customField, e.target.value as any)}
-                    placeholder={t('photoStyleCreator.customPlaceholder') as string}
-                    className="w-full bg-base-200 border-gray-500 rounded-md p-2.5 text-sm mt-2"
-                />
-            )}
-        </div>
-    );
-
-    const RadioGroup: React.FC<{ value: string | number; onChange: (value: any) => void; options: {value: string | number, label: string}[]; }> = ({ value, onChange, options }) => (
-        <div className="grid grid-cols-3 gap-2">
-            {options.map(opt => (
-                <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => onChange(opt.value)}
-                    className={`px-3 py-2.5 text-sm rounded-md text-center transition-colors ${value === opt.value ? 'bg-brand-primary text-white font-semibold' : 'bg-base-300 hover:bg-base-200'}`}
-                >{opt.label}</button>
-            ))}
-        </div>
-    );
-    
     const renderArtistModelControls = () => (
         <>
             <fieldset className="border-t border-base-300 pt-5 space-y-5">
@@ -404,10 +421,10 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
             <fieldset className="border-t border-base-300 pt-5 space-y-5">
                  {/* FIX: Cast result of t() to string to match ReactNode type. */}
                  <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{String(t('photoStyleCreator.groups.style'))}</legend>
-                <SmartDropdown label={t('photoStyleCreator.artist.facialExpression') as string} field="facialExpression" customField="customFacialExpression" options={t('photoStyleCreator.artist.expressions') as any} recs={recommendations?.facialExpression} />
-                <SmartDropdown label={t('photoStyleCreator.artist.handGesture') as string} field="handGesture" customField="customHandGesture" options={t('photoStyleCreator.artist.gestures') as any} recs={recommendations?.handGesture} />
-                <SmartDropdown label={t('photoStyleCreator.artist.bodyPose') as string} field="bodyPose" customField="customBodyPose" options={t('photoStyleCreator.artist.bodyPoses') as any} recs={recommendations?.bodyPose} />
-                <SmartDropdown label={t('photoStyleCreator.artist.pose') as string} field="pose" customField="customPose" options={t('photoStyleCreator.artist.poses') as any} recs={recommendations?.pose} />
+                <SmartDropdown t={(key) => t(key) as string} formState={formState} handleStateChange={handleStateChange} label={t('photoStyleCreator.artist.facialExpression') as string} field="facialExpression" customField="customFacialExpression" options={t('photoStyleCreator.artist.expressions') as any} recs={recommendations?.facialExpression} />
+                <SmartDropdown t={(key) => t(key) as string} formState={formState} handleStateChange={handleStateChange} label={t('photoStyleCreator.artist.handGesture') as string} field="handGesture" customField="customHandGesture" options={t('photoStyleCreator.artist.gestures') as any} recs={recommendations?.handGesture} />
+                <SmartDropdown t={(key) => t(key) as string} formState={formState} handleStateChange={handleStateChange} label={t('photoStyleCreator.artist.bodyPose') as string} field="bodyPose" customField="customBodyPose" options={t('photoStyleCreator.artist.bodyPoses') as any} recs={recommendations?.bodyPose} />
+                <SmartDropdown t={(key) => t(key) as string} formState={formState} handleStateChange={handleStateChange} label={t('photoStyleCreator.artist.pose') as string} field="pose" customField="customPose" options={t('photoStyleCreator.artist.poses') as any} recs={recommendations?.pose} />
                 <div>
                      {/* FIX: Cast result of t() to string to match ReactNode type. */}
                      <label className="block text-sm font-medium text-gray-300 mb-2">{String(t('photoStyleCreator.artist.backgroundColor'))}</label>
@@ -438,9 +455,9 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
             <fieldset className="border-t border-base-300 pt-5 space-y-5">
                  {/* FIX: Cast result of t() to string to match ReactNode type. */}
                  <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{String(t('photoStyleCreator.groups.style'))}</legend>
-                <SmartDropdown label={t('photoStyleCreator.product.shotType') as string} field="productShotType" customField="customProductShotType" options={t('photoStyleCreator.product.shotTypes') as any} recs={recommendations?.productShotType} />
-                <SmartDropdown label={t('photoStyleCreator.product.lighting') as string} field="productLighting" customField="customProductLighting" options={t('photoStyleCreator.product.lightingOptions') as any} recs={recommendations?.productLighting} />
-                <SmartDropdown label={t('photoStyleCreator.product.background') as string} field="productBackground" customField="customProductBackground" options={t('photoStyleCreator.product.backgroundOptions') as any} recs={recommendations?.productBackground} />
+                <SmartDropdown t={(key) => t(key) as string} formState={formState} handleStateChange={handleStateChange} label={t('photoStyleCreator.product.shotType') as string} field="productShotType" customField="customProductShotType" options={t('photoStyleCreator.product.shotTypes') as any} recs={recommendations?.productShotType} />
+                <SmartDropdown t={(key) => t(key) as string} formState={formState} handleStateChange={handleStateChange} label={t('photoStyleCreator.product.lighting') as string} field="productLighting" customField="customProductLighting" options={t('photoStyleCreator.product.lightingOptions') as any} recs={recommendations?.productLighting} />
+                <SmartDropdown t={(key) => t(key) as string} formState={formState} handleStateChange={handleStateChange} label={t('photoStyleCreator.product.background') as string} field="productBackground" customField="customProductBackground" options={t('photoStyleCreator.product.backgroundOptions') as any} recs={recommendations?.productBackground} />
             </fieldset>
         </>
     );
@@ -476,9 +493,9 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
             <fieldset className="border-t border-base-300 pt-5 space-y-5">
                 {/* FIX: Cast result of t() to string to match ReactNode type. */}
                 <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{String(t('photoStyleCreator.groups.style'))}</legend>
-                <SmartDropdown label={t('photoStyleCreator.thumbnail.style') as string} field="thumbnailStyle" customField="customThumbnailStyle" options={t('photoStyleCreator.thumbnail.styles') as any} recs={recommendations?.thumbnailStyle} />
-                <SmartDropdown label={t('photoStyleCreator.thumbnail.font') as string} field="thumbnailFont" customField="customThumbnailFont" options={t('photoStyleCreator.thumbnail.fonts') as any} recs={recommendations?.thumbnailFont} />
-                <SmartDropdown label={t('photoStyleCreator.thumbnail.palette') as string} field="thumbnailPalette" customField="customThumbnailPalette" options={t('photoStyleCreator.thumbnail.palettes') as any} recs={recommendations?.thumbnailPalette} />
+                <SmartDropdown t={(key) => t(key) as string} formState={formState} handleStateChange={handleStateChange} label={t('photoStyleCreator.thumbnail.style') as string} field="thumbnailStyle" customField="customThumbnailStyle" options={t('photoStyleCreator.thumbnail.styles') as any} recs={recommendations?.thumbnailStyle} />
+                <SmartDropdown t={(key) => t(key) as string} formState={formState} handleStateChange={handleStateChange} label={t('photoStyleCreator.thumbnail.font') as string} field="thumbnailFont" customField="customThumbnailFont" options={t('photoStyleCreator.thumbnail.fonts') as any} recs={recommendations?.thumbnailFont} />
+                <SmartDropdown t={(key) => t(key) as string} formState={formState} handleStateChange={handleStateChange} label={t('photoStyleCreator.thumbnail.palette') as string} field="thumbnailPalette" customField="customThumbnailPalette" options={t('photoStyleCreator.thumbnail.palettes') as any} recs={recommendations?.thumbnailPalette} />
             </fieldset>
         </>
     );

@@ -939,9 +939,17 @@ export const generateTextFromImage = async (
 
     let instruction = '';
     if (generationType === 'description') {
-        instruction = "Analyze the provided media (image/video) and write a concise, one-sentence description of the main subject. This will be used as a prompt for image generation.";
+        instruction = `Analyze the provided media (image/video) with extreme detail. Your task is to write a comprehensive and vivid description that captures every possible visual element. This description will be used to generate a nearly identical image. You must include:
+1.  **Main Subject:** A detailed breakdown of the primary subject(s), including physical appearance, clothing, expression, and pose.
+2.  **Environment:** A thorough description of the background, setting, and any secondary objects.
+3.  **Composition:** An analysis of the camera shot type (e.g., close-up, wide shot), angle, and framing.
+4.  **Lighting & Mood:** A description of the lighting (e.g., soft, dramatic, golden hour) and the overall mood or atmosphere of the scene.
+5.  **Style:** The artistic style (e.g., photorealistic, cinematic, anime, vintage).
+Combine all these elements into a single, rich, descriptive paragraph. The goal is to create a prompt that can perfectly replicate the reference image.`;
     } else { // overlay
-        instruction = "Analyze the provided media (image/video) and generate a short, catchy, clickbait-style text (under 5 words) suitable for a YouTube thumbnail overlay. It should be intriguing and attention-grabbing.";
+        instruction = `You are an expert visual analyst and YouTube thumbnail strategist. Your task is to analyze the provided media for any text.
+1.  **If text is present:** Extract the *exact* text you see. The output should be only this text.
+2.  **If no text is present:** Analyze the visual content and generate a short, catchy, and highly relevant clickbait-style text (under 7 words) that would be perfect as an overlay for a YouTube thumbnail. The text should be intriguing, create curiosity, and accurately reflect the scene.`;
     }
 
     const prompt = `
