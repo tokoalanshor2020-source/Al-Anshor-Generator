@@ -803,6 +803,15 @@ export const generatePhotoStyleImages = async (
             **Creative Brief:**
             ${creativePrompt}
             `;
+        } else if (state.photoType === 'artist_model' || state.photoType === 'product') {
+            const subject = state.photoType === 'artist_model' ? 'person/character' : 'product';
+            finalCreativePrompt = `
+**Primary Goal:** Recreate the ${subject} from the reference image(s) with perfect accuracy and consistency, but place them in a completely new scene that adheres to the creative brief below.
+**Critical Instruction:** Do NOT copy the composition, background, or aspect ratio from the reference image. Your task is to generate a new, original photograph featuring the reference ${subject}.
+
+**Creative Brief:**
+${creativePrompt}
+`;
         }
 
         const reinforcedPrompt = `
