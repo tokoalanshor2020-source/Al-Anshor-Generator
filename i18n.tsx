@@ -211,6 +211,9 @@ const enTranslations: Translations = {
       ideaWithReferenceDescription: "Upload videos or photos for the AI to analyze into a story idea and cinematic prompt.",
       openReferenceIdea: "Analyze References",
       createAffiliateVideo: "Create Affiliate Video",
+      createOverlayContent: "Create Overlay Content",
+      createOverlayContentDescription: "Add text, images, or shapes on top of your video.",
+      createOverlayContentButton: "Create Content",
       storyTitle: "Story Title:",
       storyTitlePlaceholder: "e.g., Rino the Red Racing Car and Goro the Brave Monster Truck",
       storyScript: "Story Script / Summary:",
@@ -695,6 +698,31 @@ const enTranslations: Translations = {
         'Nova': 'Nova (Female)',
         'Lyra': 'Lyra (Female)'
       }
+    },
+    videoOverlayEditor: {
+      title: "Video Overlay Editor",
+      uploadVideo: {
+        title: "1. Upload Video"
+      },
+      addOverlays: {
+        title: "2. Add Overlays",
+        addText: "Add Text",
+        addImage: "Add Image/Watermark"
+      },
+      layers: {
+        title: "3. Layers & Timeline",
+        imageLayer: "Image"
+      },
+      render: {
+        title: "4. Render Video",
+        button: "Render Video",
+        renderingButton: "Rendering... {progress}%",
+        completeTitle: "Render Complete!",
+        downloadButton: "Download Video"
+      },
+      placeholder: {
+        upload: "Upload a video to begin"
+      }
     }
   };
 
@@ -861,6 +889,9 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
       ideaWithReferenceDescription: "Unggah video atau foto untuk dianalisa oleh AI menjadi ide cerita dan prompt sinematik.",
       openReferenceIdea: "Analisa Referensi",
       createAffiliateVideo: "Buat Video Affiliate",
+      createOverlayContent: "Buat Konten Tempel",
+      createOverlayContentDescription: "Tempelkan teks, gambar, atau bentuk di atas video Anda.",
+      createOverlayContentButton: "Buat Konten",
       storyTitle: "Judul Cerita:",
       storyTitlePlaceholder: "Contoh: Rino si Mobil Balap Merah dan Goro si Truk Monster Pemberani",
       storyScript: "Naskah Cerita / Ringkasan:",
@@ -1344,6 +1375,31 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
         'Luna': 'Luna (Wanita)',
         'Nova': 'Nova (Wanita)',
         'Lyra': 'Lyra (Wanita)'
+      }
+    },
+    videoOverlayEditor: {
+      title: "Editor Tempel Video",
+      uploadVideo: {
+        title: "1. Unggah Video"
+      },
+      addOverlays: {
+        title: "2. Tambah Lapisan",
+        addText: "Tambah Teks",
+        addImage: "Tambah Gambar/Watermark"
+      },
+      layers: {
+        title: "3. Lapisan & Linimasa",
+        imageLayer: "Gambar"
+      },
+      render: {
+        title: "4. Render Video",
+        button: "Render Video",
+        renderingButton: "Merender... {progress}%",
+        completeTitle: "Render Selesai!",
+        downloadButton: "Unduh Video"
+      },
+      placeholder: {
+        upload: "Unggah video untuk memulai"
       }
     }
 });

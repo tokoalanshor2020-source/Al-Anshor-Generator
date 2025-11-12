@@ -11,6 +11,8 @@ import { TutorialModal } from './components/TutorialModal';
 import { AffiliateCreatorModal } from './components/affiliate-creator/AffiliateCreatorModal';
 import { SpeechGeneratorModal } from './components/speech-generator/SpeechGeneratorModal';
 import { PhotoStyleCreatorModal } from './components/photo-style-creator/PhotoStyleCreatorModal';
+import { VideoOverlayEditor } from './components/video-overlay-editor/VideoOverlayEditor';
+
 
 const CHARACTERS_STORAGE_KEY = 'gemini-story-characters';
 const STORY_CREATOR_SESSION_KEY = 'gemini-story-creator-session';
@@ -179,6 +181,8 @@ export default function App() {
   const [isAffiliateCreatorModalOpen, setIsAffiliateCreatorModalOpen] = useState(false);
   const [isSpeechModalOpen, setIsSpeechModalOpen] = useState(false);
   const [isPhotoStyleModalOpen, setIsPhotoStyleModalOpen] = useState(false);
+  const [isOverlayEditorModalOpen, setIsOverlayEditorModalOpen] = useState(false);
+
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -457,6 +461,14 @@ export default function App() {
         />
       )}
 
+      {isOverlayEditorModalOpen && (
+        <VideoOverlayEditor
+          isOpen={isOverlayEditorModalOpen}
+          onClose={() => setIsOverlayEditorModalOpen(false)}
+        />
+      )}
+
+
       <header className="sticky top-0 z-30 w-full border-b border-base-300 bg-base-100/90 backdrop-blur-sm">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <Header 
@@ -497,6 +509,8 @@ export default function App() {
               setIsSpeechModalOpen={setIsSpeechModalOpen}
               isPhotoStyleModalOpen={isPhotoStyleModalOpen}
               setIsPhotoStyleModalOpen={setIsPhotoStyleModalOpen}
+              isOverlayEditorModalOpen={isOverlayEditorModalOpen}
+              setIsOverlayEditorModalOpen={setIsOverlayEditorModalOpen}
            />
         )}
 

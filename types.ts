@@ -292,3 +292,47 @@ export interface PhotoStyleRecommendations {
     thumbnailFont?: string[];
     thumbnailPalette?: string[];
 }
+
+// --- Video Overlay Editor ---
+
+export interface BaseOverlay {
+  id: string;
+  type: 'text' | 'image';
+  x: number; // percentage
+  y: number; // percentage
+  width: number; // pixels
+  height: number; // pixels
+  rotation: number; // degrees
+  opacity: number; // 0-1
+  zIndex: number;
+  startTime: number; // seconds
+  endTime: number; // seconds
+}
+
+export interface TextOverlay extends BaseOverlay {
+  type: 'text';
+  text: string;
+  fontFamily: string;
+  fontSize: number; // pixels
+  color: string;
+  backgroundColor: string;
+  fontWeight: '400' | '700';
+  fontStyle: 'normal' | 'italic';
+  textDecoration: 'none' | 'underline';
+  strokeColor: string;
+  strokeWidth: number; // pixels
+  shadowColor: string;
+  shadowBlur: number; // pixels
+  shadowOffsetX: number; // pixels
+  shadowOffsetY: number; // pixels
+}
+
+export interface ImageOverlay extends BaseOverlay {
+  type: 'image';
+  src: string; // data URL
+  mimeType: string;
+  originalWidth: number;
+  originalHeight: number;
+}
+
+export type Overlay = TextOverlay | ImageOverlay;

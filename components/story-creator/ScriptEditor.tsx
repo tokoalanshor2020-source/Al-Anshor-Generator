@@ -9,6 +9,7 @@ import { ReferenceIdeaModal } from './ReferenceIdeaModal';
 import { ShoppingCartIcon } from '../icons/ShoppingCartIcon';
 import { SpeakerWaveIcon } from '../icons/SpeakerWaveIcon';
 import { PhotoIcon } from '../icons/PhotoIcon';
+import { LayersIcon } from '../icons/LayersIcon';
 
 
 interface ScriptEditorProps {
@@ -35,13 +36,15 @@ interface ScriptEditorProps {
     setIsSpeechModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
     isPhotoStyleModalOpen: boolean;
     setIsPhotoStyleModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    isOverlayEditorModalOpen: boolean;
+    setIsOverlayEditorModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     const { t } = useLocalization();
     const [isDirectorBridgeOpen, setIsDirectorBridgeOpen] = React.useState(false);
     
-    const { isReferenceIdeaModalOpen, setIsReferenceIdeaModalOpen, setIsAffiliateCreatorModalOpen, setIsSpeechModalOpen, setIsPhotoStyleModalOpen } = props;
+    const { isReferenceIdeaModalOpen, setIsReferenceIdeaModalOpen, setIsAffiliateCreatorModalOpen, setIsSpeechModalOpen, setIsPhotoStyleModalOpen, setIsOverlayEditorModalOpen } = props;
 
     return (
         <div className="p-6">
@@ -127,6 +130,20 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
                     >
                         <RocketIcon />
                         {t('storyCreator.openDirectVideo') as string}
+                    </button>
+                </div>
+
+                <div className="text-center p-4 bg-base-300/50 rounded-lg border-2 border-dashed border-pink-500 flex flex-col lg:col-span-2">
+                    <div className="flex-grow">
+                        <h3 className="text-lg font-bold text-pink-400">{t('storyCreator.createOverlayContent') as string}</h3>
+                        <p className="text-gray-400 text-sm mb-4">{t('storyCreator.createOverlayContentDescription') as string}</p>
+                    </div>
+                    <button
+                        onClick={() => setIsOverlayEditorModalOpen(true)}
+                        className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-pink-600 hover:bg-pink-700"
+                    >
+                        <LayersIcon />
+                        {t('storyCreator.createOverlayContentButton') as string}
                     </button>
                 </div>
             </div>
