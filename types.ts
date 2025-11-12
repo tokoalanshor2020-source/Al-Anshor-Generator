@@ -210,6 +210,15 @@ export interface SpeakerConfig {
 
 export type PhotoType = 'artist_model' | 'product' | 'thumbnail';
 
+export interface MusicThumbnailStyle {
+    fontFamily: string;
+    songsColor: string;
+    gradient?: { start: string; end: string };
+    solidColor?: string;
+    shadow?: { color: string; blur: number };
+    outline?: { color: string; width: number };
+}
+
 export interface PhotoStyleCreatorState {
     photoType: PhotoType;
     referenceFiles: StoredReferenceFile[];
@@ -244,6 +253,32 @@ export interface PhotoStyleCreatorState {
     customThumbnailFont: string;
     thumbnailPalette: string;
     customThumbnailPalette: string;
+
+    // NEW: Thumbnail sub-mode
+    thumbnailMode: 'normal' | 'music';
+
+    // NEW: Music Thumbnail properties
+    musicAiThemePrompt: string;
+    musicInspirationImage: StoredReferenceFile | null;
+    musicUseInspiration: boolean;
+    musicTitle: string;
+    musicSongList: string;
+    musicAutoClean: boolean;
+    musicTitleFontSize: number;
+    musicSongsFontSize: number;
+    musicTitleFont: string;
+    musicSongsFont: string;
+    musicSongsColor: string;
+    musicUseGradient: boolean;
+    musicGradientStart: string;
+    musicGradientEnd: string;
+    musicTitleColor: string;
+    musicUseShadow: boolean;
+    musicShadowColor: string;
+    musicShadowBlur: number;
+    musicTitleAlign: 'left' | 'center' | 'right';
+    musicColumnCount: 1 | 2 | 4;
+    musicCanvasBgColor: string;
 }
 export interface PhotoStyleRecommendations {
     facialExpression?: string[];

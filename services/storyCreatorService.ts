@@ -1,7 +1,7 @@
 // services/storyCreatorService.ts
 import { GoogleGenAI, Type, GenerateContentResponse, Modality } from "@google/genai";
 // FIX: Import the missing `PhotoType` type to resolve a TypeScript error.
-import type { Character, StoryboardScene, DirectingSettings, PublishingKitData, StoryIdea, ThemeSuggestion, ThemeIdeaOptions, StoryIdeaOptions, GeneratedPrompts, ReferenceFile, GeneratedAffiliateImage, AffiliateCreatorState, VideoPromptType, StoredReferenceFile, PhotoStyleCreatorState, PhotoStyleRecommendations, PhotoType } from '../types';
+import type { Character, StoryboardScene, DirectingSettings, PublishingKitData, StoryIdea, ThemeSuggestion, ThemeIdeaOptions, StoryIdeaOptions, GeneratedPrompts, ReferenceFile, GeneratedAffiliateImage, AffiliateCreatorState, VideoPromptType, StoredReferenceFile, PhotoStyleCreatorState, PhotoStyleRecommendations, PhotoType, MusicThumbnailStyle } from '../types';
 import { languageMap } from '../i18n';
 
 
@@ -969,6 +969,91 @@ You are a creative visual analyst and copywriter.
         contents: { parts },
     });
 
+    return response.text.trim();
+};
+
+export const generateMusicThumbnailStyle = async (theme: string, language: string): Promise<MusicThumbnailStyle> => {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const prompt = `You are a master graphic designer for music thumbnails. Based on the user's theme, provide a complete style guide in JSON. Recommend a Google Font, and colors. The fonts MUST be from this list: Inter, Roboto, Poppins, Oswald, Playfair Display, Lobster. For the title, suggest EITHER a solid color OR a two-color gradient. Also, suggest an optional shadow and an optional outline effect if they fit the theme. All text values in the response must be in English.
+
+User's theme: "${theme}"
+
+Respond ONLY in valid JSON. Example for retro theme: {"fontFamily":"Oswald","songsColor":"#FFFFFF","gradient":{"start":"#FF00FF","end":"#00FFFF"},"shadow":{"color":"#000000","blur":10},"outline":{"color":"#FFFFFF","width":2}}. Example for elegant theme: {"fontFamily":"Playfair Display","songsColor":"#F1F5F9","solidColor":"#D1B48C","shadow":null,"outline":null}`;
+
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            fontFamily: { type: Type.STRING },
+            songsColor: { type: Type.STRING },
+            gradient: {
+                type: Type.OBJECT,
+                properties: { start: { type: Type.STRING }, end: { type: Type.STRING } },
+                nullable: true,
+            },
+            solidColor: { type: Type.STRING, nullable: true },
+            shadow: {
+                type: Type.OBJECT,
+                properties: { color: { type: Type.STRING }, blur: { type: Type.NUMBER } },
+                nullable: true,
+            },
+            outline: {
+                type: Type.OBJECT,
+                properties: { color: { type: Type.STRING }, width: { type: Type.NUMBER } },
+                nullable: true,
+            },
+        },
+        required: ["fontFamily", "songsColor"]
+    };
+
+    const response: GenerateContentResponse = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: schema,
+        },
+    });
+
+    try {
+        const result = JSON.parse(response.text);
+        return result as MusicThumbnailStyle;
+    } catch (e) {
+        console.error("Failed to parse music thumbnail style JSON:", response.text);
+        throw new Error("The AI returned an invalid style format.");
+    }
+};
+
+export const generateMusicThumbnailBackground = async (prompt: string): Promise<{ base64: string, mimeType: string }> => {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const response = await ai.models.generateImages({
+        model: 'imagen-4.0-generate-001',
+        prompt: `Music playlist background, abstract, vibrant, cinematic, ${prompt}`,
+        config: {
+            numberOfImages: 1,
+            outputMimeType: 'image/jpeg',
+            aspectRatio: '16:9',
+        },
+    });
+    const image = response.generatedImages[0];
+    if (!image?.image?.imageBytes) {
+        throw new Error("Background image generation failed, no image data returned.");
+    }
+    return { base64: image.image.imageBytes, mimeType: 'image/jpeg' };
+};
+
+export const generatePromptFromInspirationImage = async (file: { base64: string, mimeType: string }): Promise<string> => {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const prompt = "Describe this image with a creative and detailed prompt for an image generation AI. Capture the style, subject, mood, and key elements. The prompt should be in English to get the best image generation results.";
+    const contents = {
+        parts: [
+            { text: prompt },
+            { inlineData: { mimeType: file.mimeType, data: file.base64 } }
+        ]
+    };
+    const response: GenerateContentResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents,
+    });
     return response.text.trim();
 };
 
