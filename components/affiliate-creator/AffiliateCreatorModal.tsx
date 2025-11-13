@@ -23,6 +23,7 @@ interface AffiliateCreatorModalProps {
     onProceedToVideo: (prompt: string, data?: { base64: string; mimeType: string } | { affiliateImageId: string }, origin?: VideoGeneratorOrigin) => void;
     affiliateCreatorState: AffiliateCreatorState;
     setAffiliateCreatorState: React.Dispatch<React.SetStateAction<AffiliateCreatorState>>;
+    setHasSelectedKey: (hasKey: boolean) => void;
 }
 
 const generateUUID = () => {
@@ -68,6 +69,7 @@ export const AffiliateCreatorModal: React.FC<AffiliateCreatorModalProps> = ({
     onProceedToVideo,
     affiliateCreatorState,
     setAffiliateCreatorState,
+    setHasSelectedKey,
 }) => {
     const { t } = useLocalization();
     const [isGenerating, setIsGenerating] = useState(false);
@@ -269,7 +271,11 @@ export const AffiliateCreatorModal: React.FC<AffiliateCreatorModalProps> = ({
             setAffiliateCreatorState(prev => ({...prev, generatedImages: newImages}));
 
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'An unknown error occurred');
+            const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred';
+            if (errorMessage.includes("Requested entity was not found.")) {
+                setHasSelectedKey(false);
+            }
+            setError(errorMessage);
         } finally {
             setIsGenerating(false);
         }
@@ -339,7 +345,11 @@ export const AffiliateCreatorModal: React.FC<AffiliateCreatorModalProps> = ({
             }));
             
         } catch (e) {
-            setError(e instanceof Error ? e.message : `Failed to generate video prompt`);
+            const errorMessage = e instanceof Error ? e.message : `Failed to generate video prompt`;
+            if (errorMessage.includes("Requested entity was not found.")) {
+                setHasSelectedKey(false);
+            }
+            setError(errorMessage);
         } finally {
             setGeneratingStates(prev => {
                 const newStates = { ...prev };
@@ -388,7 +398,11 @@ export const AffiliateCreatorModal: React.FC<AffiliateCreatorModalProps> = ({
                 }));
             }
         } catch (e) {
-            setError(e instanceof Error ? e.message : `Failed to ${action}`);
+            const errorMessage = e instanceof Error ? e.message : `Failed to ${action}`;
+            if (errorMessage.includes("Requested entity was not found.")) {
+                setHasSelectedKey(false);
+            }
+            setError(errorMessage);
         } finally {
             setGeneratingStates(prev => {
                 const newStates = { ...prev };
@@ -408,7 +422,11 @@ export const AffiliateCreatorModal: React.FC<AffiliateCreatorModalProps> = ({
             });
             setAffiliateCreatorState(p => ({ ...p, productDescription: description }));
         } catch(e) {
-            setError(e instanceof Error ? e.message : 'Failed to generate description');
+            const errorMessage = e instanceof Error ? e.message : 'Failed to generate description';
+            if (errorMessage.includes("Requested entity was not found.")) {
+                setHasSelectedKey(false);
+            }
+            setError(errorMessage);
         } finally {
             setIsGeneratingDescription(false);
         }

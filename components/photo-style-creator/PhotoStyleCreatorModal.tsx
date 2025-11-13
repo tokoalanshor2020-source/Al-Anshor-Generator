@@ -22,6 +22,7 @@ import { MagicWandIcon } from '../icons/MagicWandIcon';
 interface PhotoStyleCreatorModalProps {
     isOpen: boolean;
     onClose: () => void;
+    setHasSelectedKey: (hasKey: boolean) => void;
 }
 
 const generateUUID = () => window.crypto.randomUUID();
@@ -162,7 +163,7 @@ const RadioGroup: React.FC<RadioGroupProps> = ({ value, onChange, options }) => 
 );
 
 
-export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ isOpen, onClose }) => {
+export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ isOpen, onClose, setHasSelectedKey }) => {
     const { t, language } = useLocalization();
     const [formState, setFormState] = useState<PhotoStyleCreatorState>(initialPhotoStyleCreatorState);
     
@@ -210,7 +211,8 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
     useEffect(() => {
         const referenceFiles = formState.photoType === 'product' ? formState.productFiles : formState.referenceFiles;
 
-        if (referenceFiles.length > 0 && formState.thumbnailMode === 'normal') {
+        // Fetch recommendations if there are reference files AND we are not in the music thumbnail creator mode.
+        if (referenceFiles.length > 0 && (formState.photoType !== 'thumbnail' || formState.thumbnailMode === 'normal')) {
             const getRecs = async () => {
                 setIsGeneratingRecs(true);
                 setRecommendations(null); // Clear old recs
@@ -219,6 +221,10 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                     setRecommendations(recs);
                 } catch (e) {
                     console.error("Failed to get recommendations:", e);
+                    const errorMessage = e instanceof Error ? e.message : 'Failed to get recommendations';
+                    if (errorMessage.includes("Requested entity was not found.")) {
+                        setHasSelectedKey(false);
+                    }
                 } finally {
                     setIsGeneratingRecs(false);
                 }
@@ -227,7 +233,7 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
         } else {
             setRecommendations(null); // Clear recs if image is removed
         }
-    }, [formState.referenceFiles, formState.productFiles, formState.photoType, language, formState.thumbnailMode]);
+    }, [formState.referenceFiles, formState.productFiles, formState.photoType, language, formState.thumbnailMode, setHasSelectedKey]);
 
 
     const handleStateChange = <K extends keyof PhotoStyleCreatorState>(key: K, value: PhotoStyleCreatorState[K]) => {
@@ -338,7 +344,11 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
             const images = await generatePhotoStyleImages(formState);
             setGeneratedImages(images);
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'An unknown error occurred');
+            const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred';
+            if (errorMessage.includes("Requested entity was not found.")) {
+                setHasSelectedKey(false);
+            }
+            setError(errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -367,7 +377,11 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
             const text = await generateTextFromImage(filesToUse, type, languageMap[language]);
             handleStateChange(targetField, text as any);
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'Failed to generate text.');
+            const errorMessage = e instanceof Error ? e.message : 'Failed to generate text.';
+            if (errorMessage.includes("Requested entity was not found.")) {
+                setHasSelectedKey(false);
+            }
+            setError(errorMessage);
         } finally {
             setAutoGeneratingField(null);
         }
@@ -615,7 +629,11 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                 img.src = `data:${mimeType};base64,${base64}`;
             }
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'Failed to generate background');
+            const errorMessage = e instanceof Error ? e.message : 'Failed to generate background';
+            if (errorMessage.includes("Requested entity was not found.")) {
+                setHasSelectedKey(false);
+            }
+            setError(errorMessage);
         } finally {
             setIsMusicLoading(false);
             setLoadingMessage('');
@@ -655,7 +673,11 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
 
             setTitleStyleEffects(styles.outline ? { outline: styles.outline } : null);
         } catch (e) {
-             setError(e instanceof Error ? e.message : 'Failed to generate text styles');
+             const errorMessage = e instanceof Error ? e.message : 'Failed to generate text styles';
+            if (errorMessage.includes("Requested entity was not found.")) {
+                setHasSelectedKey(false);
+            }
+             setError(errorMessage);
         } finally {
              setIsMusicLoading(false);
              setLoadingMessage('');
@@ -990,39 +1012,39 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                         
                         {isGeneratingRecs && <p className="text-xs text-amber-400 animate-pulse">{String(t('photoStyleCreator.generatingRecommendations'))}</p>}
                         
-                        {formState.thumbnailMode === 'normal' && (
-                            <fieldset className="border-t border-base-300 pt-5 space-y-5">
-                                <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{String(t('photoStyleCreator.groups.output'))}</legend>
-                                <div>
-                                     <label className="block text-sm font-medium text-gray-300 mb-2">{String(t('photoStyleCreator.shared.numberOfImages'))}</label>
-                                    <RadioGroup 
-                                        value={formState.numberOfImages} 
-                                        onChange={(v) => handleStateChange('numberOfImages', v)} 
-                                        options={[{value: 3, label: '3'}, {value: 6, label: '6'}, {value: 9, label: '9'}]}
-                                    />
+                        {(formState.photoType !== 'thumbnail' || formState.thumbnailMode === 'normal') && (
+                            <>
+                                <fieldset className="border-t border-base-300 pt-5 space-y-5">
+                                    <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{String(t('photoStyleCreator.groups.output'))}</legend>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">{String(t('photoStyleCreator.shared.numberOfImages'))}</label>
+                                        <RadioGroup 
+                                            value={formState.numberOfImages} 
+                                            onChange={(v) => handleStateChange('numberOfImages', v)} 
+                                            options={[{value: 3, label: '3'}, {value: 6, label: '6'}, {value: 9, label: '9'}]}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">{String(t('photoStyleCreator.shared.aspectRatio'))}</label>
+                                        <RadioGroup
+                                            value={formState.aspectRatio}
+                                            onChange={(v) => handleStateChange('aspectRatio', v)}
+                                            options={[
+                                                { value: '1:1', label: '1:1' },
+                                                { value: '9:16', label: '9:16' },
+                                                { value: '16:9', label: '16:9' },
+                                                { value: '3:4', label: '3:4' },
+                                                { value: '4:3', label: '4:3' },
+                                            ]}
+                                        />
+                                    </div>
+                                </fieldset>
+                                
+                                <div className="pt-2">
+                                    <button onClick={handleGenerate} disabled={isLoading} className="w-full py-3.5 text-lg bg-brand-primary hover:bg-brand-dark text-white font-bold rounded-lg disabled:opacity-50">{isLoading ? String(t('photoStyleCreator.generating')) : String(t('photoStyleCreator.generate'))}</button>
                                 </div>
-                                 <div>
-                                     <label className="block text-sm font-medium text-gray-300 mb-2">{String(t('photoStyleCreator.shared.aspectRatio'))}</label>
-                                     <RadioGroup
-                                        value={formState.aspectRatio}
-                                        onChange={(v) => handleStateChange('aspectRatio', v)}
-                                        options={[
-                                            { value: '1:1', label: '1:1' },
-                                            { value: '9:16', label: '9:16' },
-                                            { value: '16:9', label: '16:9' },
-                                            { value: '3:4', label: '3:4' },
-                                            { value: '4:3', label: '4:3' },
-                                        ]}
-                                    />
-                                </div>
-                            </fieldset>
+                            </>
                         )}
-                        
-                         {formState.thumbnailMode === 'normal' && (
-                            <div className="pt-2">
-                               <button onClick={handleGenerate} disabled={isLoading} className="w-full py-3.5 text-lg bg-brand-primary hover:bg-brand-dark text-white font-bold rounded-lg disabled:opacity-50">{isLoading ? String(t('photoStyleCreator.generating')) : String(t('photoStyleCreator.generate'))}</button>
-                            </div>
-                         )}
                     </aside>
                     {/* Main Content Area */}
                     <div className="lg:col-span-8 bg-base-200/50 p-4 rounded-lg border border-base-300 flex items-center justify-center min-h-[calc(100vh-12rem)]">
