@@ -13,6 +13,7 @@ interface VideoGeneratorFormProps {
   onStateChange: React.Dispatch<React.SetStateAction<VideoGeneratorState>>;
   characters: Character[];
   videoGeneratorOrigin: VideoGeneratorOrigin | null;
+  setHasSelectedKey: (hasKey: boolean) => void;
 }
 
 const MAX_IMAGE_SIZE_MB = 10;
@@ -24,6 +25,7 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
   generatorState,
   onStateChange,
   videoGeneratorOrigin,
+  setHasSelectedKey,
 }) => {
   const { t } = useLocalization();
   const { prompt, imageFile, aspectRatio, enableSound, resolution } = generatorState;
@@ -143,7 +145,11 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
         setGeneratedRefImg({ ...result, previewUrl });
     } catch(e) {
         console.error("Reference image generation failed:", e);
-        alert(e instanceof Error ? e.message : 'An unknown error occurred');
+        const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred';
+        if (errorMessage.includes("Requested entity was not found.")) {
+            setHasSelectedKey(false);
+        }
+        alert(errorMessage);
     } finally {
         setIsGeneratingRefImg(false);
     }

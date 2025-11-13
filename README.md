@@ -2,186 +2,130 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# 1. AL ANSHOR VEO GENERATOR - Panduan Pemasangan Dikomputer Sendiri/Localhost
-### 1. Download file zip berikut Kemudian extrak dilokasi sesuai keinginanmu {Saran didata D:}
-{https://github.com/tokoalanshor2020-source/AL-ANSHOR-VEO-GENERATOR/archive/refs/heads/main.zip}
-### 2. Masuk pada hasil ekstrak {AL-ANSHOR-VEO-GENERATOR} kemudian pada kolom lokasi file berikut klik kemudian ketik cmd
-{Semisal : D:\PROYEK\AL-ANSHOR-VEO-GENERATOR-main\AL-ANSHOR-VEO-GENERATOR-main}
-### Lalu masukkan perintah berikut :
+# AL ANSHOR VEO GENERATOR
+
+This is an advanced web application to generate high-quality videos from text prompts and reference images using Google's AI models. Customize aspect ratio, sound, and resolution for the perfect video output.
+
+## 1. Local Installation Guide (for Development)
+
+Follow these steps to run the application on your own computer.
+
+### Step 1: Download and Extract
+Download the project ZIP file from the repository and extract it to a location of your choice (e.g., `D:\Projects`).
+[Download Link](https://github.com/tokoalanshor2020-source/AL-ANSHOR-VEO-GENERATOR/archive/refs/heads/main.zip)
+
+### Step 2: Open Command Prompt
+Navigate into the extracted project folder. In the file explorer's address bar, type `cmd` and press Enter. This will open a command prompt in the correct directory.
+
+### Step 3: Install Dependencies
+In the command prompt, run the following command to install all the necessary packages:
 ```bash
 npm install
 ```
+
+### Step 4: Run the Development Server
+Start the application with this command:
 ```bash
 npm run dev
 ```
-Maka akan muncul keterangan sebagai berikut
-```bash
- VITE v6.3.6  ready in 5796 ms
+You should see output similar to this, indicating the server is running:
+```
+  VITE vX.X.X  ready in XXXX ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: use --host to expose
-  ➜  press h + enter to show help
 ```
-Setelah itu buka browser kemudian jalankan { http://localhost:5173/ }
+Open your web browser and go to **http://localhost:5173/**.
 
-
-# 2. AL ANSHOR VEO GENERATOR - Panduan Pemasangan VPS
-
-Dokumen ini berisi panduan lengkap langkah demi langkah untuk memasang dan menjalankan aplikasi AL ANSHOR VEO GENERATOR di server VPS Ubuntu. Panduan ini mencakup konfigurasi agar aplikasi dapat diakses publik secara aman menggunakan Nginx sebagai *reverse proxy* dan tetap berjalan 24/7 menggunakan PM2.
-
-## Prasyarat
-
-Sebelum memulai, pastikan Anda memiliki:
-
-- **Server VPS** dengan sistem operasi Ubuntu (disarankan versi 20.04 LTS atau yang lebih baru).
-- **Akses root** atau pengguna dengan hak akses `sudo`.
-- **Nama domain** yang sudah diarahkan ke alamat IP VPS Anda (opsional, tetapi sangat direkomendasikan untuk keamanan dan kemudahan akses).
+### Step 5: Configure API Keys
+The first time you run the app, you will be prompted to add your Google AI API Keys. 
+1.  Click the **Settings** button (cog icon) in the header.
+2.  Add your keys for both **"Story"** and **"Video & Thumbnail"** functionalities.
+3.  The app is now ready to use!
 
 ---
 
-## Pemasangan Langkah demi Langkah
+## 2. VPS Deployment Guide (for Production)
 
-# Langkah 1: Pembaruan Sistem & Instalasi Utilitas Dasar
+This guide provides step-by-step instructions to deploy the AL ANSHOR VEO GENERATOR on a VPS running Ubuntu, using Nginx as a reverse proxy and PM2 to keep the application running 24/7.
 
-Pertama, perbarui daftar paket dan tingkatkan semua paket yang terpasang ke versi terbaru. Kemudian, instal utilitas penting yang akan kita butuhkan.
+### Prerequisites
+- A VPS server with Ubuntu (20.04 LTS or newer).
+- Root access or a user with `sudo` privileges.
+- A domain name pointed to your VPS IP address (recommended).
 
+### Step 1: Update System & Install Tools
+Connect to your VPS and run these commands to update your system and install essential tools.
 ```bash
-apt update && sudo apt upgrade -y
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl wget git nginx
 ```
-```bash
-apt install curl wget git ufw nginx -y
-```
 
-# Langkah 2: Instalasi Node.js & NPM
-
-Aplikasi ini membutuhkan Node.js. Kita akan menginstal Node.js versi 18 (LTS) menggunakan repositori dari NodeSource.
-
-### Tambahkan repositori Node.js 18
+### Step 2: Install Node.js, NPM, and PM2
+We'll install Node.js (v18 LTS) and the PM2 process manager.
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
-```
-### Instal Node.js (NPM akan terinstal secara otomatis)
-```bash
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
 sudo apt install -y nodejs
+sudo npm install -g pm2
 ```
-### Verifikasi instalasi
+Verify the installations:
 ```bash
 node -v
-```
-```bash
 npm -v
-```
-
-# Langkah 3: Install PM2 (Process Manager)
-
-```bash
-npm install -g pm2
-```
-```bash
 pm2 -v
 ```
 
-### Clone repositori dari GitHub
-
-### Pindah ke direktori proyek
+### Step 3: Clone and Build the Application
+Clone the project repository from GitHub and build it for production.
 ```bash
+# Create a directory for web projects and navigate into it
+sudo mkdir -p /var/www
 cd /var/www
-```
-```bash
-git clone https://github.com/tokoalanshor2020-source/alanshor.git alanshor
-```
-```bash
+
+# Clone the repository
+sudo git clone https://github.com/tokoalanshor2020-source/AL-ANSHOR-VEO-GENERATOR.git alanshor
 cd alanshor
+
+# Install project dependencies
+sudo npm install
+
+# Build the application for production
+sudo npm run build
 ```
 
-### Instal semua dependensi proyek
+### Step 4: Run the App with PM2
+We will use PM2 to run the production-ready server that Vite provides.
 ```bash
-npm install
-```
+# Start the app using Vite's preview server, making it accessible on the network
+pm2 start "npm run preview -- --host" --name "alanshor"
 
-### Jalankan Vite agar bind ke semua interface (public)
-### Buka Config.js
-```bash
-nano vite.config.js
-```
-### Paste ini kemudian simpan {CTRL+0 Kemudian CTRL+X ENTER SIMPAN}
-```bash
-import { defineConfig } from 'vite'
-
-export default defineConfig({
-  server: {
-    host: '0.0.0.0',
-    port: 5173, // atau port sesuai yang kamu jalankan
-    allowedHosts: [
-      'Domain_Kamu', // Atau ganti dengan domain kamu
-      'www.Domain_Kamu' // Atau ganti dengan domain kamu
-    ]
-  }
-})
-```
-Simpan (CTRL+O, lalu CTRL+X).
-
-### Jalan NPM untuk run WEB APP
-```bash
-npm run build
-```
-```bash
-pm2 start npm --name "alanshor" -- run dev
-```
-### Cek status PM2 dan Aktifkan auto restart
-```bash
+# Check the status to ensure it's running
 pm2 status
-```
-```bash
+
+# Configure PM2 to restart automatically on server reboot
 pm2 startup
-```
-```bash
+# Follow the on-screen instructions, which will give you a command to run.
 pm2 save
 ```
-**Perintah PM2 yang Berguna:**
--   Melihat daftar semua aplikasi: `pm2 list`
--   Melihat log aplikasi: `pm2 logs alanshor`
--   Memulai ulang aplikasi: `pm2 restart alanshor`
+**Useful PM2 Commands:**
+-   View application logs: `pm2 logs alanshor`
+-   Restart the application: `pm2 restart alanshor`
+-   Stop the application: `pm2 stop alanshor`
 
-# Langkah 4: Konfigurasi Domain di Namecheap
-
-### Login → Domain List → pilih Domain_Kamu.
-
-Masuk ke Advanced DNS.
-
-Tambahkan:
-
-### - A Record
-Host: @ | 
-Value: IP_VPS_KAMU | 
-TTL: Auto
-
-### - CNAME Record
-Host: www | 
-Value: Domain_Kamu | 
-TTL: Auto
-
-Tunggu propagasi DNS (15 menit – 2 jam).
-
-# Langkah 5: Konfigurasi Nginx sebagai Reverse Proxy
-
-Menjalankan server pengembangan Vite secara langsung ke internet tidak aman dan tidak efisien. Sebaiknya, kita gunakan Nginx sebagai *reverse proxy* untuk menangani lalu lintas masuk dan meneruskannya ke aplikasi kita.
-
-### 1.  Buat file konfigurasi Nginx baru untuk proyek Anda.
-
+### Step 5: Configure Nginx as a Reverse Proxy
+Create an Nginx configuration file to direct traffic from your domain to the running application.
 ```bash
-nano /etc/nginx/sites-available/alanshor.conf
+sudo nano /etc/nginx/sites-available/alanshor.conf
 ```
-
-### 2.  Salin dan tempel konfigurasi berikut ke dalam file tersebut. **Jangan lupa ganti `your_domain_or_ip`** dengan nama domain atau alamat IP VPS Anda.
-
- ```bash
-    server {
+Paste the following configuration, replacing `your_domain` with your actual domain name.
+```nginx
+server {
     listen 80;
-    server_name Domain_Kamu www.Domain_Kamu;
+    server_name your_domain www.your_domain;
 
     location / {
-        proxy_pass http://localhost:5173;   # kalau pakai vite dev
+        # The default port for 'npm run preview' is 4173
+        proxy_pass http://localhost:4173;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -189,57 +133,40 @@ nano /etc/nginx/sites-available/alanshor.conf
         proxy_cache_bypass $http_upgrade;
     }
 }
- ```
-Simpan → CTRL+O, keluar → CTRL+X
-### Catatan:
-Kalau npm run preview default port = 4173.
-Kalau npm run dev → port = 5173.
-Kalau backend Node.js → biasanya port = 3000.
-Sesuaikan proxy_pass dengan port aplikasi kamu.
+```
+Save the file (CTRL+O, Enter) and exit (CTRL+X).
 
-### 3.  Aktifkan konfigurasi dengan membuat *symbolic link*.
-
+Activate the new configuration and restart Nginx.
 ```bash
-ln -s /etc/nginx/sites-available/alanshor.conf /etc/nginx/sites-enabled/
+# Create a symbolic link to enable the site
+sudo ln -s /etc/nginx/sites-available/alanshor.conf /etc/nginx/sites-enabled/
+
+# Test the Nginx configuration for errors
+sudo nginx -t
+
+# If the test is successful, reload Nginx
+sudo systemctl reload nginx
 ```
 
-### 4.  Uji konfigurasi Nginx dan muat ulang jika tidak ada kesalahan.
-
+### Step 6: Secure with SSL (HTTPS)
+If you have a domain, use Certbot to get a free SSL certificate from Let's Encrypt.
 ```bash
-nginx -t
+# Install Certbot
+sudo apt install -y certbot python3-certbot-nginx
+
+# Obtain and install the certificate
+sudo certbot --nginx -d your_domain -d www.your_domain
 ```
-```bash
-systemctl reload nginx
-```
+Follow the prompts. Certbot will automatically update your Nginx configuration to handle HTTPS.
 
-# Langkah 6: Pasang SSL (HTTPS) dengan Certbot
+Your application should now be live and accessible at `https://your_domain`.
 
-Jika Anda menggunakan domain, sangat disarankan untuk menginstal sertifikat SSL gratis dari Let's Encrypt menggunakan Certbot.
-
-### Instal Certbot
-```bash
-apt install certbot python3-certbot-nginx -y
-```
-
-### Dapatkan dan pasang sertifikat SSL untuk domain Anda
-```bash
-certbot --nginx -d Domaian_Kamu -d www.Domaian_Kamu
-```
-
-### Cek Akses
-Buka browser
-```bash
-https://Domain_Kamu
-```
-Kalau berhasil → aplikasi jalan dengan domain + SSL.
-
-# Langkah 8: Workflow Update Project
+### How to Update the Project on VPS
+To update the application with the latest changes from GitHub, run these commands:
 ```bash
 cd /var/www/alanshor
-git pull
-npm install
-npm run build
+sudo git pull
+sudo npm install
+sudo npm run build
 pm2 restart alanshor
-systemctl reload nginx
-
 ```

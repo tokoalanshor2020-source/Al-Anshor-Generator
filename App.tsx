@@ -11,7 +11,7 @@ import { TutorialModal } from './components/TutorialModal';
 import { AffiliateCreatorModal } from './components/affiliate-creator/AffiliateCreatorModal';
 import { SpeechGeneratorModal } from './components/speech-generator/SpeechGeneratorModal';
 import { PhotoStyleCreatorModal } from './components/photo-style-creator/PhotoStyleCreatorModal';
-import { VideoOverlayEditor } from './components/video-overlay-editor/VideoOverlayEditor';
+import { KeyIcon } from './components/icons/KeyIcon';
 
 
 const CHARACTERS_STORAGE_KEY = 'gemini-story-characters';
@@ -64,8 +64,28 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   
   const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
-  
+  const [hasSelectedKey, setHasSelectedKey] = useState<boolean>(true); // Start optimistically
+
   const { t, language, dir } = useLocalization();
+
+  useEffect(() => {
+    // Check for API key on initial load
+    const checkApiKey = async () => {
+        try {
+            if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
+                const hasKey = await window.aistudio.hasSelectedApiKey();
+                setHasSelectedKey(hasKey);
+            } else {
+                // If the aistudio context is not available, assume a key is provided via environment variables.
+                setHasSelectedKey(true);
+            }
+        } catch (e) {
+            console.error("Error checking for API key:", e);
+            setHasSelectedKey(false);
+        }
+    };
+    checkApiKey();
+  }, []);
 
   const [view, setView] = useState<AppView>(() => {
     try {
@@ -181,7 +201,6 @@ export default function App() {
   const [isAffiliateCreatorModalOpen, setIsAffiliateCreatorModalOpen] = useState(false);
   const [isSpeechModalOpen, setIsSpeechModalOpen] = useState(false);
   const [isPhotoStyleModalOpen, setIsPhotoStyleModalOpen] = useState(false);
-  const [isOverlayEditorModalOpen, setIsOverlayEditorModalOpen] = useState(false);
 
 
   useEffect(() => {
@@ -247,6 +266,20 @@ export default function App() {
         console.error("Failed to save affiliate creator session to localStorage", e);
     }
     }, [affiliateCreatorState]);
+  
+  const handleApiError = useCallback((e: unknown) => {
+    console.error("API Error:", e);
+    const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+    
+    let displayError = errorMessage;
+    if (errorMessage.includes("Requested entity was not found.")) {
+        setHasSelectedKey(false);
+        displayError = t('errorApiKeyNotFound') as string;
+    } else if (errorMessage === 'errorRateLimit') {
+        displayError = t('errorRateLimit') as string;
+    }
+    setError(displayError);
+  }, [t]);
 
   const handleGenerateVideo = useCallback(async (options: GeneratorOptions) => {
     setIsLoading(true);
@@ -257,15 +290,11 @@ export default function App() {
       const url = await generateVideo({ options });
       setVideoUrl(url);
     } catch (e) {
-      console.error(e);
-      const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-// FIX: Cast result of t() to string
-      const displayError = errorMessage === 'errorRateLimit' ? t('errorRateLimit') as string : errorMessage;
-      setError(displayError);
+      handleApiError(e);
     } finally {
       setIsLoading(false);
     }
-  }, [t]);
+  }, [handleApiError]);
   
   const parseCompositePrompt = (compositePrompt: string): { video: string, audio: string } => {
     // Attempt to parse as JSON for affiliate/structured prompts
@@ -430,11 +459,47 @@ export default function App() {
     }
   };
 
+  const handleSelectKey = async () => {
+    try {
+        if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
+            await window.aistudio.openSelectKey();
+            // Optimistically assume success and let the user proceed.
+            // If the key is invalid, the next API call will fail and re-trigger this.
+            setHasSelectedKey(true);
+        } else {
+            alert("API Key selection is not available in this environment.");
+        }
+    } catch (e) {
+        console.error("Failed to open API key selection:", e);
+        setError(e instanceof Error ? e.message : "Could not open API key selection.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-base-100 font-sans text-gray-200 flex flex-col">
       {isTutorialOpen && (
         <TutorialModal onClose={() => setIsTutorialOpen(false)} />
+      )}
+
+      {!hasSelectedKey && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4 text-center">
+            <div>
+                <h2 className="text-2xl font-bold text-amber-400 mb-4">{t('apiKeySelection.title') as string}</h2>
+                <p className="text-gray-300 mb-2 max-w-md mx-auto">{t('apiKeySelection.description') as string}</p>
+                 <p className="text-xs text-gray-500 mb-6">
+                    <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-300">
+                        {t('apiKeySelection.billingInfo') as string}
+                    </a>
+                  </p>
+                <button 
+                    onClick={handleSelectKey}
+                    className="inline-flex items-center gap-2 px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-brand-primary hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-base-100 focus:ring-brand-secondary transition-colors"
+                >
+                    <KeyIcon className="h-5 w-5" />
+                    {t('apiKeySelection.button') as string}
+                </button>
+            </div>
+        </div>
       )}
       
       {isAffiliateCreatorModalOpen && (
@@ -444,6 +509,7 @@ export default function App() {
             onProceedToVideo={handleProceedToVideoGenerator}
             affiliateCreatorState={affiliateCreatorState}
             setAffiliateCreatorState={setAffiliateCreatorState}
+            setHasSelectedKey={setHasSelectedKey}
           />
       )}
 
@@ -451,6 +517,7 @@ export default function App() {
         <SpeechGeneratorModal
             isOpen={isSpeechModalOpen}
             onClose={() => setIsSpeechModalOpen(false)}
+            setHasSelectedKey={setHasSelectedKey}
         />
       )}
 
@@ -458,15 +525,11 @@ export default function App() {
         <PhotoStyleCreatorModal
           isOpen={isPhotoStyleModalOpen}
           onClose={() => setIsPhotoStyleModalOpen(false)}
+          setHasSelectedKey={setHasSelectedKey}
         />
       )}
 
-      {isOverlayEditorModalOpen && (
-        <VideoOverlayEditor
-          isOpen={isOverlayEditorModalOpen}
-          onClose={() => setIsOverlayEditorModalOpen(false)}
-        />
-      )}
+
 
 
       <header className="sticky top-0 z-30 w-full border-b border-base-300 bg-base-100/90 backdrop-blur-sm">
@@ -509,8 +572,7 @@ export default function App() {
               setIsSpeechModalOpen={setIsSpeechModalOpen}
               isPhotoStyleModalOpen={isPhotoStyleModalOpen}
               setIsPhotoStyleModalOpen={setIsPhotoStyleModalOpen}
-              isOverlayEditorModalOpen={isOverlayEditorModalOpen}
-              setIsOverlayEditorModalOpen={setIsOverlayEditorModalOpen}
+              setHasSelectedKey={setHasSelectedKey}
            />
         )}
 
@@ -530,6 +592,7 @@ export default function App() {
                 onStateChange={setVideoGeneratorState}
                 characters={characters}
                 videoGeneratorOrigin={videoGeneratorOrigin}
+                setHasSelectedKey={setHasSelectedKey}
               />
             </div>
 

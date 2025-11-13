@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useId, useRef } from 'react';
 import { useLocalization, languageMap } from '../../i18n';
 import type { SpeechMode, DialogEntry, SpeakerConfig } from '../../types';
-// FIX: Correct the import path for generateSpeech.
 import { generateSpeech } from '../../services/geminiService';
 import { generateStyleSuggestions } from '../../services/storyCreatorService';
 import { XCircleIcon } from '../icons/XCircleIcon';
@@ -12,6 +11,7 @@ import { SpeakerWaveIcon } from '../icons/SpeakerWaveIcon';
 interface SpeechGeneratorModalProps {
     isOpen: boolean;
     onClose: () => void;
+    setHasSelectedKey: (hasKey: boolean) => void;
 }
 
 const generateUUID = () => window.crypto.randomUUID();
@@ -68,7 +68,7 @@ const createWavBlob = (pcmData: Uint8Array, sampleRate: number, numChannels: num
 };
 
 
-export const SpeechGeneratorModal: React.FC<SpeechGeneratorModalProps> = ({ isOpen, onClose }) => {
+export const SpeechGeneratorModal: React.FC<SpeechGeneratorModalProps> = ({ isOpen, onClose, setHasSelectedKey }) => {
     const { t, language } = useLocalization();
     const speakerColors = ['#f59e0b', '#8b5cf6', '#10b981', '#3b82f6', '#ec4899'];
     const availableVoices = t('speechGenerator.voices') as Record<string, string>;
@@ -228,7 +228,13 @@ export const SpeechGeneratorModal: React.FC<SpeechGeneratorModalProps> = ({ isOp
             setAudioUrl(URL.createObjectURL(wavBlob));
 
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'An unknown error occurred.');
+            const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+            if (errorMessage.includes("Requested entity was not found.")) {
+                setHasSelectedKey(false);
+                setError(t('errorApiKeyNotFound') as string);
+            } else {
+                setError(errorMessage);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -257,7 +263,13 @@ export const SpeechGeneratorModal: React.FC<SpeechGeneratorModalProps> = ({ isOp
                 };
             }
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'Failed to generate preview.');
+            const errorMessage = e instanceof Error ? e.message : 'Failed to generate preview.';
+             if (errorMessage.includes("Requested entity was not found.")) {
+                setHasSelectedKey(false);
+                setError(t('errorApiKeyNotFound') as string);
+            } else {
+                setError(errorMessage);
+            }
         } finally {
             setPreviewingVoice(null);
         }

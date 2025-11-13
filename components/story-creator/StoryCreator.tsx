@@ -38,8 +38,7 @@ interface StoryCreatorProps {
     setIsSpeechModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
     isPhotoStyleModalOpen: boolean;
     setIsPhotoStyleModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
-    isOverlayEditorModalOpen: boolean;
-    setIsOverlayEditorModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    setHasSelectedKey: (hasKey: boolean) => void;
 }
 
 export const StoryCreator: React.FC<StoryCreatorProps> = (props) => {
@@ -50,7 +49,7 @@ export const StoryCreator: React.FC<StoryCreatorProps> = (props) => {
         logline, setLogline, scenario, setScenario, sceneCount, setSceneCount,
         directingSettings, setDirectingSettings, onNewStory, publishingKit, setPublishingKit,
         activeTab, setActiveTab, referenceIdeaState, setReferenceIdeaState,
-        isReferenceIdeaModalOpen, setIsReferenceIdeaModalOpen
+        isReferenceIdeaModalOpen, setIsReferenceIdeaModalOpen, setHasSelectedKey
     } = props;
 
     const [isGenerating, setIsGenerating] = useState(false);
@@ -83,6 +82,20 @@ export const StoryCreator: React.FC<StoryCreatorProps> = (props) => {
             }
         );
     };
+    
+    const handleApiError = useCallback((e: unknown) => {
+        console.error("API Error:", e);
+        const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+        
+        let displayError = errorMessage;
+        if (errorMessage.includes("Requested entity was not found.")) {
+            setHasSelectedKey(false);
+            displayError = t('errorApiKeyNotFound') as string;
+        } else if (errorMessage === 'errorRateLimit') {
+            displayError = t('errorRateLimit') as string;
+        }
+        setError(displayError);
+  }, [t, setHasSelectedKey]);
 
     const handleGenerateStoryboard = useCallback(async () => {
         if (!logline.trim() || !scenario.trim()) {
@@ -106,15 +119,12 @@ export const StoryCreator: React.FC<StoryCreatorProps> = (props) => {
             setStoryboard(scenes);
             setActiveTab('storyboard'); 
         } catch (e) {
-            console.error(e);
-            const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred';
-            const displayError = errorMessage === 'errorRateLimit' ? t('errorRateLimit') : errorMessage;
-            setError(displayError as string);
+            handleApiError(e);
             setActiveTab('storyboard');
         } finally {
             setIsGenerating(false);
         }
-    }, [logline, scenario, sceneCount, characters, directingSettings, t, setStoryboard, setPublishingKit, setActiveTab]);
+    }, [logline, scenario, sceneCount, characters, directingSettings, t, setStoryboard, setPublishingKit, setActiveTab, handleApiError]);
 
     const handleGeneratePublishingKit = useCallback(async () => {
         setIsGeneratingKit(true);
@@ -124,16 +134,13 @@ export const StoryCreator: React.FC<StoryCreatorProps> = (props) => {
             setPublishingKit(kit);
             setActiveTab('publishingKit');
         } catch (e) {
-            console.error(e);
-            const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred';
-            const displayError = errorMessage === 'errorRateLimit' ? t('errorRateLimit') : errorMessage;
-            setError(displayError as string);
+            handleApiError(e);
             setActiveTab('publishingKit');
         } finally {
             setIsGeneratingKit(false);
         }
 
-    }, [storyboard, characters, logline, t, setPublishingKit, setActiveTab]);
+    }, [storyboard, characters, logline, setPublishingKit, setActiveTab, handleApiError]);
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">

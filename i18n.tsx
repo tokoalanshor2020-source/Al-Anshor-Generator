@@ -50,9 +50,6 @@ function mergeDeep(target: any, ...sources: any[]): any {
 const enTranslations: Translations = {
     appName: "AL ANSHOR GENERATOR",
     appTagline: "Generate stunning videos from text or images.",
-    manageStoryApiKeys: "Story API Key",
-    manageVideoApiKeys: "Video & Thumbnail API Key",
-    settingsButton: "Settings",
     tutorialButton: "Tutorial",
     promptLabel: "Prompt",
     promptPlaceholder: "A majestic lion overlooking the savanna at sunset...",
@@ -68,30 +65,16 @@ const enTranslations: Translations = {
     soundLabel: "Sound",
     enableSound: "Enable sound",
     resolutionLabel: "Resolution",
-    videoKeyMissingWarning: "Please add a professional Video API Key to begin.",
     generateButton: "Generate Video",
     generatingButton: "Generating Video...",
     loaderTitle: "Generating Your Video",
     loadingMessages: [ "Initializing VEO model...", "Analyzing your prompt...", "Composing the main scene...", "Generating initial frames...", "Rendering video sequence... this may take a few minutes.", "Upscaling to high resolution...", "Adding sound and final touches...", "Almost there, preparing the final video file." ],
     playerTitle: "Generation Complete!",
     downloadButton: "Download Video",
-    storyApiKeyManagerTitle: "Story API Key",
-    videoApiKeyManagerTitle: "Professional Video & Thumbnail API Key",
-    addNewStoryKeyLabel: "Add New Story API Key",
-    addNewVideoKeyLabel: "Add New Professional Video & Thumbnail API Key",
-    apiKeyInputPlaceholder: "Enter your Gemini API Key",
-    addKeyButton: "Add Key",
-    validatingButton: "Validating...",
-    savedStoryKeysLabel: "Saved Story Keys",
-    savedVideoKeysLabel: "Saved Professional Video & Thumbnail Keys",
-    noKeysSaved: "No API Keys saved.",
-    addKeyPrompt: "Add a key above to get started.",
     closeButton: "Close",
-    errorKeyEmpty: "API Key cannot be empty.",
-    errorKeyExists: "This API Key has already been added.",
-    errorKeyInvalid: "Invalid API Key or network issue. Please check the key and try again.",
     generationFailed: "Generation Failed",
     errorRateLimit: "The service is currently busy due to high demand. Please wait a moment and try again.",
+    errorApiKeyNotFound: "Your API key is invalid or could not be found. Please select a valid key to continue.",
     alertEnterPrompt: "Please enter a prompt.",
     alertSetStoryApiKey: "Please set an active Story API Key before generating.",
     alertSetVideoApiKey: "Please set an active Professional Video & Thumbnail API key before generating.",
@@ -101,12 +84,11 @@ const enTranslations: Translations = {
     backToReferenceAnalyzer: "Back to Reference Analyzer",
     backToEditor: "Back to Editor",
     confirmButton: "OK",
-    revalidateAllButton: "Re-validate All",
-    apiKeyStatuses: {
-      valid: "VALID",
-      invalid: "INVALID",
-      checking: "CHECKING...",
-      unchecked: "UNCHECKED"
+    apiKeySelection: {
+      title: "API Key Selection Required",
+      description: "To use the application, please select your Google AI API Key. If you don't have one, you will be guided to create it and enable billing.",
+      billingInfo: "Billing is required to use this feature. Learn more.",
+      button: "Select API Key",
     },
     publishingKit: {
       copyButton: "Copy",
@@ -211,9 +193,6 @@ const enTranslations: Translations = {
       ideaWithReferenceDescription: "Upload videos or photos for the AI to analyze into a story idea and cinematic prompt.",
       openReferenceIdea: "Analyze References",
       createAffiliateVideo: "Create Affiliate Video",
-      createOverlayContent: "Create Overlay Content",
-      createOverlayContentDescription: "Add text, images, or shapes on top of your video.",
-      createOverlayContentButton: "Create Content",
       storyTitle: "Story Title:",
       storyTitlePlaceholder: "e.g., Rino the Red Racing Car and Goro the Brave Monster Truck",
       storyScript: "Story Script / Summary:",
@@ -698,39 +677,11 @@ const enTranslations: Translations = {
         'Nova': 'Nova (Female)',
         'Lyra': 'Lyra (Female)'
       }
-    },
-    videoOverlayEditor: {
-      title: "Video Overlay Editor",
-      uploadVideo: {
-        title: "1. Upload Video"
-      },
-      addOverlays: {
-        title: "2. Add Overlays",
-        addText: "Add Text",
-        addImage: "Add Image/Watermark"
-      },
-      layers: {
-        title: "3. Layers & Timeline",
-        imageLayer: "Image"
-      },
-      render: {
-        title: "4. Render Video",
-        button: "Render Video",
-        renderingButton: "Rendering... {progress}%",
-        completeTitle: "Render Complete!",
-        downloadButton: "Download Video"
-      },
-      placeholder: {
-        upload: "Upload a video to begin"
-      }
     }
   };
 
 const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTranslations)), {
     appTagline: "Hasilkan video menakjubkan dari teks atau gambar.",
-    manageStoryApiKeys: "Kunci API Cerita",
-    manageVideoApiKeys: "Kunci API Video & Thumbnail",
-    settingsButton: "Pengaturan",
     tutorialButton: "Tutorial",
     promptLabel: "Prompt",
     promptPlaceholder: "Seekor singa agung memandangi sabana saat matahari terbenam...",
@@ -746,30 +697,16 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
     soundLabel: "Suara",
     enableSound: "Aktifkan suara",
     resolutionLabel: "Resolusi",
-    videoKeyMissingWarning: "Silakan tambah Kunci API Video profesional untuk memulai.",
     generateButton: "Hasilkan Video",
     generatingButton: "Menghasilkan Video...",
     loaderTitle: "Menghasilkan Video Anda",
     loadingMessages: [ "Menginisialisasi model VEO...", "Menganalisisis prompt Anda...", "Menyusun adegan utama...", "Menghasilkan bingkai awal...", "Merender urutan video... ini mungkin memakan waktu beberapa menit.", "Meningkatkan skala ke resolusi tinggi...", "Menambahkan suara dan sentuhan akhir...", "Hampir selesai, menyiapkan file video akhir." ],
     playerTitle: "Pembuatan Selesai!",
     downloadButton: "Unduh Video",
-    storyApiKeyManagerTitle: "Kunci API Cerita",
-    videoApiKeyManagerTitle: "Kunci API Video & Thumbnail Profesional",
-    addNewStoryKeyLabel: "Tambah Kunci API Cerita Baru",
-    addNewVideoKeyLabel: "Tambah Kunci API Video & Thumbnail Profesional Baru",
-    apiKeyInputPlaceholder: "Masukkan Kunci API Gemini Anda",
-    addKeyButton: "Tambah Kunci",
-    validatingButton: "Memvalidasi...",
-    savedStoryKeysLabel: "Kunci Cerita Tersimpan",
-    savedVideoKeysLabel: "Kunci Video & Thumbnail Profesional Tersimpan",
-    noKeysSaved: "Tidak ada Kunci API yang tersimpan.",
-    addKeyPrompt: "Tambahkan kunci di atas untuk memulai.",
     closeButton: "Tutup",
-    errorKeyEmpty: "Kunci API tidak boleh kosong.",
-    errorKeyExists: "Kunci API ini sudah ditambahkan.",
-    errorKeyInvalid: "Kunci API tidak valid atau masalah jaringan. Harap periksa kunci dan coba lagi.",
     generationFailed: "Pembuatan Gagal",
     errorRateLimit: "Layanan sedang sibuk karena permintaan tinggi. Harap tunggu sejenak dan coba lagi.",
+    errorApiKeyNotFound: "Kunci API Anda tidak valid atau tidak dapat ditemukan. Silakan pilih kunci yang valid untuk melanjutkan.",
     alertEnterPrompt: "Silakan masukkan prompt.",
     alertSetStoryApiKey: "Silakan atur Kunci API Cerita yang aktif sebelum melanjutkan.",
     alertSetVideoApiKey: "Silakan atur Kunci API Video & Thumbnail Profesional yang aktif sebelum membuat video.",
@@ -779,12 +716,11 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
     backToReferenceAnalyzer: "Kembali ke Penganalisa Referensi",
     backToEditor: "Kembali ke Editor",
     confirmButton: "OKE",
-    revalidateAllButton: "Validasi Ulang Semua",
-    apiKeyStatuses: {
-      valid: "VALID",
-      invalid: "TIDAK VALID",
-      checking: "MEMERIKSA...",
-      unchecked: "BELUM DICEK"
+    apiKeySelection: {
+      title: "Diperlukan Pemilihan Kunci API",
+      description: "Untuk menggunakan aplikasi, silakan pilih Kunci API Google AI Anda. Jika Anda belum memilikinya, Anda akan dipandu untuk membuatnya dan mengaktifkan penagihan.",
+      billingInfo: "Penagihan diperlukan untuk menggunakan fitur ini. Pelajari lebih lanjut.",
+      button: "Pilih Kunci API",
     },
     publishingKit: {
       copyButton: "Salin",
@@ -889,9 +825,6 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
       ideaWithReferenceDescription: "Unggah video atau foto untuk dianalisa oleh AI menjadi ide cerita dan prompt sinematik.",
       openReferenceIdea: "Analisa Referensi",
       createAffiliateVideo: "Buat Video Affiliate",
-      createOverlayContent: "Buat Konten Tempel",
-      createOverlayContentDescription: "Tempelkan teks, gambar, atau bentuk di atas video Anda.",
-      createOverlayContentButton: "Buat Konten",
       storyTitle: "Judul Cerita:",
       storyTitlePlaceholder: "Contoh: Rino si Mobil Balap Merah dan Goro si Truk Monster Pemberani",
       storyScript: "Naskah Cerita / Ringkasan:",
@@ -1375,31 +1308,6 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
         'Luna': 'Luna (Wanita)',
         'Nova': 'Nova (Wanita)',
         'Lyra': 'Lyra (Wanita)'
-      }
-    },
-    videoOverlayEditor: {
-      title: "Editor Tempel Video",
-      uploadVideo: {
-        title: "1. Unggah Video"
-      },
-      addOverlays: {
-        title: "2. Tambah Lapisan",
-        addText: "Tambah Teks",
-        addImage: "Tambah Gambar/Watermark"
-      },
-      layers: {
-        title: "3. Lapisan & Linimasa",
-        imageLayer: "Gambar"
-      },
-      render: {
-        title: "4. Render Video",
-        button: "Render Video",
-        renderingButton: "Merender... {progress}%",
-        completeTitle: "Render Selesai!",
-        downloadButton: "Unduh Video"
-      },
-      placeholder: {
-        upload: "Unggah video untuk memulai"
       }
     }
 });

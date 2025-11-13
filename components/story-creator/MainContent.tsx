@@ -38,8 +38,6 @@ interface MainContentProps {
     setIsSpeechModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
     isPhotoStyleModalOpen: boolean;
     setIsPhotoStyleModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
-    isOverlayEditorModalOpen: boolean;
-    setIsOverlayEditorModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const MainContent: React.FC<MainContentProps> = ({ activeTab, setActiveTab, publishingKit, ...props }) => {

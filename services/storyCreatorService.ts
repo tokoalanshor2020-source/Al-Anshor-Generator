@@ -686,7 +686,12 @@ Output ONLY the valid JSON object containing these two keys.
     });
     const resultText = response.text;
      try {
-        return JSON.parse(resultText);
+        const parsedResult = JSON.parse(resultText);
+        // Ensure json_prompt is always a string to match the type definition.
+        if (parsedResult.json_prompt && typeof parsedResult.json_prompt === 'object') {
+            parsedResult.json_prompt = JSON.stringify(parsedResult.json_prompt, null, 2);
+        }
+        return parsedResult;
     } catch (e) {
         console.error("Failed to parse reference analysis JSON:", resultText);
         throw new Error("The AI returned an invalid analysis format.");

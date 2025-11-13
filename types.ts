@@ -292,47 +292,51 @@ export interface PhotoStyleRecommendations {
     thumbnailFont?: string[];
     thumbnailPalette?: string[];
 }
-
+// FIX: Add missing type definitions for Video Overlay Editor.
 // --- Video Overlay Editor ---
 
+// Base properties for all overlays
 export interface BaseOverlay {
-  id: string;
-  type: 'text' | 'image';
-  x: number; // percentage
-  y: number; // percentage
-  width: number; // pixels
-  height: number; // pixels
-  rotation: number; // degrees
-  opacity: number; // 0-1
-  zIndex: number;
-  startTime: number; // seconds
-  endTime: number; // seconds
+    id: string;
+    type: 'text' | 'image';
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    rotation: number;
+    opacity: number;
+    zIndex: number;
+    startTime: number;
+    endTime: number;
 }
 
+// Text-specific overlay properties
 export interface TextOverlay extends BaseOverlay {
-  type: 'text';
-  text: string;
-  fontFamily: string;
-  fontSize: number; // pixels
-  color: string;
-  backgroundColor: string;
-  fontWeight: '400' | '700';
-  fontStyle: 'normal' | 'italic';
-  textDecoration: 'none' | 'underline';
-  strokeColor: string;
-  strokeWidth: number; // pixels
-  shadowColor: string;
-  shadowBlur: number; // pixels
-  shadowOffsetX: number; // pixels
-  shadowOffsetY: number; // pixels
+    type: 'text';
+    text: string;
+    fontFamily: string;
+    fontSize: number;
+    color: string;
+    backgroundColor: string;
+    fontWeight: string;
+    fontStyle: 'normal' | 'italic';
+    textDecoration: 'none' | 'underline' | 'line-through';
+    strokeColor: string;
+    strokeWidth: number;
+    shadowColor: string;
+    shadowBlur: number;
+    shadowOffsetX: number;
+    shadowOffsetY: number;
 }
 
+// Image-specific overlay properties
 export interface ImageOverlay extends BaseOverlay {
-  type: 'image';
-  src: string; // data URL
-  mimeType: string;
-  originalWidth: number;
-  originalHeight: number;
+    type: 'image';
+    src: string; // data URL
+    mimeType: string;
+    originalWidth: number;
+    originalHeight: number;
 }
 
+// Union type for any overlay
 export type Overlay = TextOverlay | ImageOverlay;
