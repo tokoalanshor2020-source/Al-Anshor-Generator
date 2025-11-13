@@ -1,8 +1,38 @@
 // services/storyCreatorService.ts
-import { GoogleGenAI, Type, GenerateContentResponse, Modality } from "@google/genai";
+// FIX: Import GenerateImagesResponse to correctly type the response from the generateImages API call.
+import { GoogleGenAI, Type, GenerateContentResponse, Modality, GenerateImagesResponse } from "@google/genai";
 // FIX: Import the missing `PhotoType` type to resolve a TypeScript error.
 import type { Character, StoryboardScene, DirectingSettings, PublishingKitData, StoryIdea, ThemeSuggestion, ThemeIdeaOptions, StoryIdeaOptions, GeneratedPrompts, ReferenceFile, GeneratedAffiliateImage, AffiliateCreatorState, VideoPromptType, StoredReferenceFile, PhotoStyleCreatorState, PhotoStyleRecommendations, PhotoType, MusicThumbnailStyle } from '../types';
 import { languageMap } from '../i18n';
+
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const makeApiCallWithRetry = async <T>(apiCall: () => Promise<T>, maxRetries = 3): Promise<T> => {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            return await apiCall();
+        } catch (error) {
+            if (error instanceof Error && (
+                error.message.includes('429') || 
+                error.message.includes('RESOURCE_EXHAUSTED') ||
+                error.message.includes('UNAVAILABLE') ||
+                error.message.includes('overloaded')
+            )) {
+                if (attempt === maxRetries - 1) {
+                    const friendlyError = error.message.includes('429') ? 'errorRateLimit' : "The model is temporarily overloaded. Please try again in a few moments.";
+                    throw new Error(friendlyError);
+                }
+                const delayTime = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+                console.warn(`Transient API error hit. Retrying in ${delayTime.toFixed(0)}ms... (Attempt ${attempt + 1}/${maxRetries})`);
+                await delay(delayTime);
+            } else {
+                throw error;
+            }
+        }
+    }
+    throw new Error("The model is temporarily unavailable after multiple retries. Please try again later.");
+};
 
 
 // --- Storyboard Generation ---
@@ -102,7 +132,7 @@ const storyboardSchema = {
     }
 };
 
-// FIX: Removed failover logic and used direct API call with environment variable for API key.
+// FIX: Added apiKey parameter to align with component call signature.
 export const generateStoryboard = async (
     { logline, scenario, sceneCount, characters, directingSettings }: {
         logline: string;
@@ -110,18 +140,20 @@ export const generateStoryboard = async (
         sceneCount: number;
         characters: Character[];
         directingSettings: DirectingSettings;
-    }
+    },
+    apiKey: string
 ): Promise<StoryboardScene[]> => {
     const prompt = generatePromptForStoryboard(logline, scenario, sceneCount, characters, directingSettings);
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
             responseMimeType: 'application/json',
             responseSchema: storyboardSchema
         }
-    });
+    }));
     const resultText = response.text;
 
     try {
@@ -135,11 +167,12 @@ export const generateStoryboard = async (
 
 // --- Scene Prompt Generation ---
 
-// FIX: Removed failover logic and used direct API call with environment variable for API key.
+// FIX: Added apiKey parameter to align with component call signature.
 export const generateBlueprintPrompt = async (
     scene: StoryboardScene,
     characters: Character[],
-    settings: DirectingSettings
+    settings: DirectingSettings,
+    apiKey: string
 ): Promise<string> => {
     const characterProfiles = scene.character_actions
     .map(action => {
@@ -227,19 +260,21 @@ MIXING: ${scene.sound_design.audio_mixing_guide}
 ---
 Output ONLY the structured text in the format above. Do not include any other text or explanations.
 `;
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
-    });
+    }));
     return response.text.trim();
 };
 
-// FIX: Removed failover logic and used direct API call with environment variable for API key.
+// FIX: Added apiKey parameter to align with component call signature.
 export const generateCinematicPrompt = async (
     scene: StoryboardScene,
     characters: Character[],
-    settings: DirectingSettings
+    settings: DirectingSettings,
+    apiKey: string
 ): Promise<string> => {
      const characterProfiles = scene.character_actions
     .map(action => {
@@ -293,23 +328,25 @@ NARRATION SCRIPT
 ---
 Output ONLY the formatted text. Do not include any other explanations or headings.
 `;
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
-    });
+    }));
     return response.text.trim();
 };
 
 
 // --- Publishing Kit Generation ---
-// FIX: Removed failover logic and used direct API call with environment variable for API key.
+// FIX: Added apiKey parameter to align with component call signature.
 export const generatePublishingKit = async (
     { storyboard, characters, logline }: {
         storyboard: StoryboardScene[];
         characters: Character[];
         logline: string;
-    }
+    },
+    apiKey: string
 ): Promise<PublishingKitData> => {
      const prompt = `
 You are a YouTube content strategist, SEO specialist, and viral marketing expert. Your task is to generate a complete and highly optimized publishing kit for a children's toy video based on the provided storyboard.
@@ -355,14 +392,15 @@ Generate a comprehensive publishing kit in a single, valid JSON object. You MUST
 
 Output ONLY the valid JSON object and nothing else.
 `;
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
             responseMimeType: 'application/json'
         }
-    });
+    }));
     const resultText = response.text;
 
     try {
@@ -373,10 +411,11 @@ Output ONLY the valid JSON object and nothing else.
     }
 };
 
-// FIX: Removed failover logic and used direct API call with environment variable for API key.
+// FIX: Added apiKey parameter to align with component call signature.
 export const generateLocalizedPublishingAssets = async (
     context: { storyboard: StoryboardScene[], characters: Character[], logline: string, originalImagePrompt: string },
-    targetLanguage: string
+    targetLanguage: string,
+    apiKey: string
 ): Promise<any> => {
      const prompt = `
 You are a localization expert for YouTube content. Your task is to translate and adapt a publishing kit for a new language and region.
@@ -404,12 +443,13 @@ Generate a JSON object containing the localized assets for the target language. 
 
 Output ONLY the valid JSON object.
 `;
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: { responseMimeType: 'application/json' }
-    });
+    }));
     const resultText = response.text;
     try {
         return JSON.parse(resultText);
@@ -421,13 +461,16 @@ Output ONLY the valid JSON object.
 
 // --- Thumbnail Generation ---
 
-// FIX: Removed failover logic and used direct API call with environment variable for API key.
+// FIX: Added apiKey parameter to align with component call signature.
 export const generateThumbnail = async (
     prompt: string,
-    aspectRatio: string
+    aspectRatio: string,
+    apiKey: string
 ): Promise<{ base64: string, mimeType: string }> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const response = await ai.models.generateImages({
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
+    // FIX: Add GenerateImagesResponse type to the response from generateImages to resolve property access error.
+    const response: GenerateImagesResponse = await makeApiCallWithRetry(() => ai.models.generateImages({
         model: 'imagen-4.0-generate-001',
         prompt: `dramatic, ultra-realistic, 8k, youtube thumbnail, cinematic lighting, vibrant colors, attention-grabbing, trending on artstation: ${prompt}`,
         config: {
@@ -435,7 +478,7 @@ export const generateThumbnail = async (
             outputMimeType: 'image/jpeg',
             aspectRatio: aspectRatio as any,
         }
-    });
+    }));
 
     const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
     if (!base64ImageBytes) throw new Error("Image generation failed, no image data received.");
@@ -492,9 +535,10 @@ export const createImageWithOverlay = (
 
 // --- Character Workshop ---
 
-// FIX: Removed failover logic and used direct API call with environment variable for API key.
+// FIX: Added apiKey parameter to align with component call signature.
 export const developCharacter = async (
-    { idea, referenceFiles }: { idea: string; referenceFiles: { base64: string, mimeType: string }[] }
+    { idea, referenceFiles }: { idea: string; referenceFiles: { base64: string, mimeType: string }[] },
+    apiKey: string
 ): Promise<any> => {
      const prompt = `
 You are a highly skilled character analyst. Your primary goal is to analyze the provided user idea and reference files to develop a detailed character profile.
@@ -521,7 +565,8 @@ Based on your analysis, generate a JSON object with the following details for th
 
 Output ONLY the valid JSON object.
 `;
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
     const contents: any = { parts: [{ text: prompt }] };
     referenceFiles.forEach(file => {
         contents.parts.push({
@@ -531,11 +576,11 @@ Output ONLY the valid JSON object.
             }
         });
     });
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents,
         config: { responseMimeType: 'application/json' }
-    });
+    }));
     const resultText = response.text;
 
     try {
@@ -560,9 +605,10 @@ Output ONLY the valid JSON object.
     }
 };
 
-// FIX: Removed failover logic and used direct API call with environment variable for API key.
+// FIX: Added apiKey parameter to align with component call signature.
 export const generateActionDna = async (
-    character: Partial<Character>
+    character: Partial<Character>,
+    apiKey: string
 ): Promise<string[]> => {
     const prompt = `
 You are a creative director for toy commercials. Based on the character profile, brainstorm 5-7 exciting "Action DNA" capabilities. These should be short, dynamic actions the toy can perform.
@@ -579,12 +625,13 @@ Example: ["jumps over obstacles", "drifts smoothly around corners", "activates t
 
 Output ONLY the valid JSON array.
 `;
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: { responseMimeType: 'application/json' }
-    });
+    }));
     const resultText = response.text;
      try {
         return JSON.parse(resultText);
@@ -596,8 +643,8 @@ Output ONLY the valid JSON array.
 
 // --- Smart Director ---
 
-// FIX: Removed failover logic and used direct API call with environment variable for API key.
-export const generateThemeIdeas = async (options: ThemeIdeaOptions): Promise<ThemeSuggestion[]> => {
+// FIX: Added apiKey parameter to align with component call signature.
+export const generateThemeIdeas = async (options: ThemeIdeaOptions, apiKey: string): Promise<ThemeSuggestion[]> => {
     const prompt = `
 You are a creative assistant for a YouTube content creator. The user wants story theme ideas.
 
@@ -611,12 +658,13 @@ Generate a JSON array of theme suggestions. Create 2-3 distinct categories. For 
 
 Output ONLY the valid JSON array.
 `;
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: { responseMimeType: 'application/json' }
-    });
+    }));
     const resultText = response.text;
     try {
         return JSON.parse(resultText);
@@ -626,8 +674,8 @@ Output ONLY the valid JSON array.
     }
 };
 
-// FIX: Removed failover logic and used direct API call with environment variable for API key.
-export const generateStoryIdeas = async (options: StoryIdeaOptions): Promise<StoryIdea[]> => {
+// FIX: Added apiKey parameter to align with component call signature.
+export const generateStoryIdeas = async (options: StoryIdeaOptions, apiKey: string): Promise<StoryIdea[]> => {
     const prompt = `
 You are a scriptwriter for a YouTube channel. Generate 3 distinct story ideas based on the user's request.
 
@@ -644,12 +692,13 @@ Generate a JSON array containing exactly 3 story ideas. Each idea object in the 
 
 Output ONLY the valid JSON array of 3 ideas.
 `;
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: { responseMimeType: 'application/json' }
-    });
+    }));
     const resultText = response.text;
     try {
         return JSON.parse(resultText);
@@ -660,8 +709,8 @@ Output ONLY the valid JSON array of 3 ideas.
 };
 
 // --- Reference Idea Modal ---
-// FIX: Removed failover logic and used direct API call with environment variable for API key.
-export const analyzeReferences = async (files: ReferenceFile[]): Promise<GeneratedPrompts> => {
+// FIX: Added apiKey parameter to align with component call signature.
+export const analyzeReferences = async (files: ReferenceFile[], apiKey: string): Promise<GeneratedPrompts> => {
      const prompt = `
 You are an expert cinematic prompt engineer. Analyze the provided reference image(s)/video(s). Your task is to generate two types of prompts to recreate a similar scene with a text-to-video model.
 
@@ -672,18 +721,19 @@ Generate a JSON object with two keys:
 
 Output ONLY the valid JSON object containing these two keys.
 `;
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
     const contents: any = { parts: [{ text: prompt }] };
     files.forEach(file => {
         contents.parts.push({
             inlineData: { mimeType: file.mimeType, data: file.base64 }
         });
     });
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents,
         config: { responseMimeType: 'application/json' }
-    });
+    }));
     const resultText = response.text;
      try {
         const parsedResult = JSON.parse(resultText);
@@ -698,14 +748,16 @@ Output ONLY the valid JSON object containing these two keys.
     }
 };
 
-// FIX: Add missing generateReferenceImage function
-// FIX: Removed failover logic and used direct API call with environment variable for API key.
+// FIX: Added apiKey parameter to align with component call signature.
 export const generateReferenceImage = async (
     prompt: string,
-    aspectRatio: '16:9' | '9:16' | '1:1' | '4:3' | '3:4'
+    aspectRatio: '16:9' | '9:16' | '1:1' | '4:3' | '3:4',
+    apiKey: string
 ): Promise<{ base64: string, mimeType: string }> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const response = await ai.models.generateImages({
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
+    // FIX: Add GenerateImagesResponse type to the response from generateImages to resolve property access error.
+    const response: GenerateImagesResponse = await makeApiCallWithRetry(() => ai.models.generateImages({
         model: 'imagen-4.0-generate-001',
         prompt: `cinematic still, ultra realistic, high detail, product shot style: ${prompt}`,
         config: {
@@ -713,7 +765,7 @@ export const generateReferenceImage = async (
             outputMimeType: 'image/jpeg',
             aspectRatio: aspectRatio,
         }
-    });
+    }));
 
     const image = response.generatedImages[0];
     if (!image?.image?.imageBytes) {
@@ -737,10 +789,13 @@ const getFinalValue = (state: PhotoStyleCreatorState, key: keyof PhotoStyleCreat
     return state[key];
 };
 
+// FIX: Added apiKey parameter to align with component call signature.
 export const generatePhotoStyleImages = async (
-    state: PhotoStyleCreatorState
+    state: PhotoStyleCreatorState,
+    apiKey: string
 ): Promise<{ base64: string, mimeType: string }[]> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
 
     // --- 1. Build the core creative prompt text ---
     let creativePrompt = '';
@@ -775,7 +830,8 @@ export const generatePhotoStyleImages = async (
     // --- 2. Smart Model Selection Logic ---
     if (!hasReferenceImages) {
         // --- NO REFERENCE IMAGES: Use Imagen for guaranteed aspect ratio across all modes ---
-        const response = await ai.models.generateImages({
+        // FIX: Add GenerateImagesResponse type to the response from generateImages to resolve property access error.
+        const response: GenerateImagesResponse = await makeApiCallWithRetry(() => ai.models.generateImages({
             model: 'imagen-4.0-generate-001',
             prompt: `Professional, ultra-realistic, 8k, cinematic lighting, vibrant colors. ${creativePrompt}`,
             config: {
@@ -783,7 +839,7 @@ export const generatePhotoStyleImages = async (
                 outputMimeType: 'image/jpeg',
                 aspectRatio: state.aspectRatio as any,
             }
-        });
+        }));
 
         if (!response.generatedImages || response.generatedImages.length === 0) {
             throw new Error("Image generation with Imagen failed, no images were returned.");
@@ -834,13 +890,13 @@ ${finalCreativePrompt}
         });
 
         const generateSingleImageWithFlash = async (): Promise<{ base64: string, mimeType: string }> => {
-            const response: GenerateContentResponse = await ai.models.generateContent({
+            const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
                 model: 'gemini-2.5-flash-image',
                 contents: { parts },
                 config: {
                     responseModalities: [Modality.IMAGE],
                 },
-            });
+            }));
             const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
             if (imagePart && imagePart.inlineData) {
                 return { base64: imagePart.inlineData.data, mimeType: imagePart.inlineData.mimeType };
@@ -858,13 +914,15 @@ ${finalCreativePrompt}
     }
 };
 
-
+// FIX: Added apiKey parameter to align with component call signature.
 export const generatePhotoStyleRecommendations = async (
     referenceFiles: StoredReferenceFile[],
     photoType: PhotoType,
-    language: string
+    language: string,
+    apiKey: string
 ): Promise<PhotoStyleRecommendations> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
 
     let requestedFields: string[] = [];
     switch(photoType) {
@@ -917,14 +975,14 @@ Output ONLY the valid JSON object.
     });
 
 
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: { parts },
         config: {
             responseMimeType: 'application/json',
             responseSchema: schema
         }
-    });
+    }));
 
     try {
         const result = JSON.parse(response.text);
@@ -935,12 +993,15 @@ Output ONLY the valid JSON object.
     }
 };
 
+// FIX: Added apiKey parameter to align with component call signature.
 export const generateTextFromImage = async (
     referenceFiles: StoredReferenceFile[],
     generationType: 'description' | 'overlay',
-    language: string
+    language: string,
+    apiKey: string
 ): Promise<string> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
 
     let instruction = '';
     if (generationType === 'description') {
@@ -969,16 +1030,18 @@ You are a creative visual analyst and copywriter.
         parts.push({ inlineData: { mimeType: file.mimeType, data: file.base64 } });
     });
 
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: { parts },
-    });
+    }));
 
     return response.text.trim();
 };
 
-export const generateMusicThumbnailStyle = async (theme: string, language: string): Promise<MusicThumbnailStyle> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// FIX: Added apiKey parameter to align with component call signature.
+export const generateMusicThumbnailStyle = async (theme: string, language: string, apiKey: string): Promise<MusicThumbnailStyle> => {
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
     const prompt = `You are a master graphic designer for music thumbnails. Based on the user's theme, provide a complete style guide in JSON. Recommend a Google Font, and colors. The fonts MUST be from this list: Inter, Roboto, Poppins, Oswald, Playfair Display, Lobster. For the title, suggest EITHER a solid color OR a two-color gradient. Also, suggest an optional shadow and an optional outline effect if they fit the theme. All text values in the response must be in English.
 
 User's theme: "${theme}"
@@ -1010,14 +1073,14 @@ Respond ONLY in valid JSON. Example for retro theme: {"fontFamily":"Oswald","son
         required: ["fontFamily", "songsColor"]
     };
 
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: prompt,
         config: {
             responseMimeType: 'application/json',
             responseSchema: schema,
         },
-    });
+    }));
 
     try {
         const result = JSON.parse(response.text);
@@ -1028,9 +1091,12 @@ Respond ONLY in valid JSON. Example for retro theme: {"fontFamily":"Oswald","son
     }
 };
 
-export const generateMusicThumbnailBackground = async (prompt: string): Promise<{ base64: string, mimeType: string }> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const response = await ai.models.generateImages({
+// FIX: Added apiKey parameter to align with component call signature.
+export const generateMusicThumbnailBackground = async (prompt: string, apiKey: string): Promise<{ base64: string, mimeType: string }> => {
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
+    // FIX: Add GenerateImagesResponse type to the response from generateImages to resolve property access error.
+    const response: GenerateImagesResponse = await makeApiCallWithRetry(() => ai.models.generateImages({
         model: 'imagen-4.0-generate-001',
         prompt: `Music playlist background, abstract, vibrant, cinematic, ${prompt}`,
         config: {
@@ -1038,7 +1104,7 @@ export const generateMusicThumbnailBackground = async (prompt: string): Promise<
             outputMimeType: 'image/jpeg',
             aspectRatio: '16:9',
         },
-    });
+    }));
     const image = response.generatedImages[0];
     if (!image?.image?.imageBytes) {
         throw new Error("Background image generation failed, no image data returned.");
@@ -1046,8 +1112,10 @@ export const generateMusicThumbnailBackground = async (prompt: string): Promise<
     return { base64: image.image.imageBytes, mimeType: 'image/jpeg' };
 };
 
-export const generatePromptFromInspirationImage = async (file: { base64: string, mimeType: string }): Promise<string> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// FIX: Added apiKey parameter to align with component call signature.
+export const generatePromptFromInspirationImage = async (file: { base64: string, mimeType: string }, apiKey: string): Promise<string> => {
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
     const prompt = "Describe this image with a creative and detailed prompt for an image generation AI. Capture the style, subject, mood, and key elements. The prompt should be in English to get the best image generation results.";
     const contents = {
         parts: [
@@ -1055,19 +1123,20 @@ export const generatePromptFromInspirationImage = async (file: { base64: string,
             { inlineData: { mimeType: file.mimeType, data: file.base64 } }
         ]
     };
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents,
-    });
+    }));
     return response.text.trim();
 };
 
 
 // --- Affiliate Creator Service Functions ---
 
-// FIX: Removed failover logic and used direct API call with environment variable for API key.
+// FIX: Added apiKey parameter to align with component call signature.
 export const generateAffiliateDescription = async (
-    files: { productFiles: { base64: string, mimeType: string }[], actorFiles: { base64: string, mimeType: string }[] }
+    files: { productFiles: { base64: string, mimeType: string }[], actorFiles: { base64: string, mimeType: string }[] },
+    apiKey: string
 ): Promise<string> => {
     const prompt = `You are an expert e-commerce copywriter. Analyze the provided product and actor/model reference media (images and/or videos).
 Generate a concise but detailed description with two parts:
@@ -1076,7 +1145,8 @@ Generate a concise but detailed description with two parts:
 
 This combined description will be used to ensure consistency in AI image generation. Output only the description text, without any preamble or markdown formatting like headers.`;
 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
     const contents: any = { parts: [{ text: prompt }] };
     
     if (files.productFiles.length > 0) {
@@ -1097,16 +1167,17 @@ This combined description will be used to ensure consistency in AI image generat
         });
     }
 
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents,
-    });
+    }));
     return response.text.trim();
 };
 
-// FIX: Removed failover logic and used direct API call with environment variable for API key.
+// FIX: Added apiKey parameter to align with component call signature.
 export const generateAffiliateImagePrompts = async (
-    state: AffiliateCreatorState
+    state: AffiliateCreatorState,
+    apiKey: string
 ): Promise<string[]> => {
     const vibe = state.vibe === 'custom' ? state.customVibe : state.vibe.replace(/_/g, ' ');
     const modelInfo = state.actorReferenceFiles.length > 0
@@ -1142,7 +1213,8 @@ Example Prompts for a floral dress with a specific actor:
 
 Output ONLY the valid JSON array of prompts.
 `;
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
     const contents: any = { parts: [{ text: prompt }] };
     
     if (state.productReferenceFiles.length > 0) {
@@ -1163,11 +1235,11 @@ Output ONLY the valid JSON array of prompts.
         });
     }
 
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents,
         config: { responseMimeType: 'application/json' }
-    });
+    }));
     const resultText = response.text;
     try {
         return JSON.parse(resultText);
@@ -1177,13 +1249,15 @@ Output ONLY the valid JSON array of prompts.
     }
 };
 
-// FIX: Removed failover logic and used direct API call with environment variable for API key.
+// FIX: Added apiKey parameter to align with component call signature.
 export const generateAffiliateImages = async (
     prompt: string,
     aspectRatio: AffiliateCreatorState['aspectRatio'],
-    referenceFiles: StoredReferenceFile[]
+    referenceFiles: StoredReferenceFile[],
+    apiKey: string
 ): Promise<{ base64: string, mimeType: string, prompt: string }> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
 
     const augmentedPrompt = `Using the provided reference images of a product and a model, generate a new image based on the following scene description. Maintain the appearance of the product and model from the references. The desired aspect ratio for the new image is ${aspectRatio}. Scene: commercial product photography, affiliate marketing style, vibrant, high detail, cinematic lighting, ${prompt}`;
 
@@ -1197,7 +1271,7 @@ export const generateAffiliateImages = async (
         });
     });
 
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
         contents: {
             parts: parts,
@@ -1205,7 +1279,7 @@ export const generateAffiliateImages = async (
         config: {
             responseModalities: [Modality.IMAGE, Modality.TEXT],
         },
-    });
+    }));
 
     let base64ImageBytes: string | undefined;
     let mimeType: string = 'image/jpeg';
@@ -1284,7 +1358,7 @@ const generateAffiliateVideoPromptSchema = () => ({
 });
 
 
-// FIX: Removed failover logic and used direct API call with environment variable for API key.
+// FIX: Added apiKey parameter to align with component call signature.
 export const generateAffiliateVideoPrompt = async (
     image: GeneratedAffiliateImage,
     settings: {
@@ -1298,7 +1372,8 @@ export const generateAffiliateVideoPrompt = async (
     },
     promptType: VideoPromptType,
     isSingleImage: boolean,
-    previousNarration?: string
+    previousNarration: string | undefined,
+    apiKey: string
 ): Promise<string> => {
     let narrationInstruction: string;
     let promptTask: string;
@@ -1370,21 +1445,22 @@ Output ONLY the raw JSON object, with no markdown, comments, or explanations.
 
     const schema = generateAffiliateVideoPromptSchema();
 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // FIX: Use passed apiKey instead of environment variable.
+    const ai = new GoogleGenAI({ apiKey });
     const contents = {
         parts: [
             { text: prompt },
             { inlineData: { mimeType: image.mimeType, data: image.base64 } }
         ]
     };
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents,
         config: { 
             responseMimeType: 'application/json',
             responseSchema: schema
         }
-    });
+    }));
     const resultText = response.text;
     if (!resultText || resultText.trim() === '') {
         throw new Error("The AI returned an empty response. This might be due to a content filter or an issue with the prompt.");
@@ -1395,29 +1471,39 @@ Output ONLY the raw JSON object, with no markdown, comments, or explanations.
         return resultText;
     } catch (e) {
         console.error("Failed to parse affiliate video prompt JSON:", resultText);
-        throw new Error("The AI returned an invalid video prompt format. Raw response: " + resultText);
+        throw new Error(`The AI returned an invalid video prompt format. Raw response: ${resultText}`);
     }
 };
 
-// --- Speech Generator Service Functions ---
-export const generateStyleSuggestions = async (scriptText: string, language: string): Promise<string[]> => {
+// --- Speech Generator ---
+
+export const generateStyleSuggestions = async (
+    script: string,
+    language: string,
+    apiKey: string
+): Promise<string[]> => {
+    if (!apiKey) throw new Error("API key is not provided.");
+    const ai = new GoogleGenAI({ apiKey });
+
     const prompt = `
-You are a voice director AI. Analyze the following script text. Based on its content, tone, and potential context (e.g., advertisement, storytelling, documentary, religious text), generate a JSON array of 10 diverse and relevant 'style instructions' for a text-to-speech engine. The instructions should be concise and descriptive.
+You are a voice acting coach. Analyze the following script and suggest 3-4 different potential performance styles or emotional tones.
+The suggestions should be concise (2-4 words each) and written in the target language.
 
-**CRITICAL INSTRUCTION:** The instructions MUST be written in the following language: **${language}**.
+**Script:**
+---
+${script}
+---
 
-**Script Text:**
-"${scriptText}"
+**Target Language for Suggestions:** ${language}
 
 **Task:**
-Return a valid JSON array containing exactly 10 string values for the style instructions.
-Example output (if language is English): ["Read in a cheerful and enthusiastic tone", "Recite with a solemn and reverent voice"]
+Return a valid JSON array of strings, where each string is a style suggestion.
+Example for an exciting script in English: ["Energetic and enthusiastic", "Dramatic and suspenseful", "Upbeat and cheerful"]
 
 Output ONLY the valid JSON array.
 `;
 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    const response: GenerateContentResponse = await makeApiCallWithRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -1427,17 +1513,13 @@ Output ONLY the valid JSON array.
                 items: { type: Type.STRING }
             }
         }
-    });
-    const resultText = response.text;
+    }));
+
     try {
-        const suggestions = JSON.parse(resultText);
-        // Ensure it's an array of strings
-        if (Array.isArray(suggestions) && suggestions.every(item => typeof item === 'string')) {
-            return suggestions;
-        }
-        throw new Error("AI returned data in an unexpected format.");
+        const result = JSON.parse(response.text);
+        return result as string[];
     } catch (e) {
-        console.error("Failed to parse style suggestions JSON:", resultText);
+        console.error("Failed to parse style suggestions JSON:", response.text);
         throw new Error("The AI returned an invalid style suggestion format.");
     }
 };

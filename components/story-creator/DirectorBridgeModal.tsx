@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocalization, languageMap } from '../../i18n';
 import type { Character, StoryIdea, ThemeSuggestion, DirectingSettings } from '../../types';
@@ -19,6 +20,8 @@ interface DirectorBridgeModalProps {
     setDirectingSettings: React.Dispatch<React.SetStateAction<DirectingSettings>>;
     isGenerating: boolean;
     onGenerateStoryboard: () => Promise<void>;
+    apiKey: string | null;
+    onApiKeyError: () => void;
 }
 
 export const DirectorBridgeModal: React.FC<DirectorBridgeModalProps> = (props) => {
@@ -53,6 +56,10 @@ export const DirectorBridgeModal: React.FC<DirectorBridgeModalProps> = (props) =
     }, [props.isOpen]);
 
     const fetchThemeIdeas = useCallback(async (format: string, chars: string[]) => {
+        if (!props.apiKey) {
+            props.onApiKeyError();
+            return;
+        }
         if (format === '' || chars.length === 0) return;
         setIsGeneratingThemes(true);
         setAiThemes([]);
@@ -62,15 +69,20 @@ export const DirectorBridgeModal: React.FC<DirectorBridgeModalProps> = (props) =
                 contentFormat: format,
                 characterNames: chars,
                 language: languageMap[language]
-            });
+            }, props.apiKey);
             setAiThemes(themes);
         } catch(e) {
             console.error("Failed to fetch theme ideas:", e);
-            alert(e instanceof Error ? e.message : 'Failed to get AI theme suggestions');
+            const errorMessage = e instanceof Error ? e.message : 'Failed to get AI theme suggestions';
+            if (errorMessage.includes("API key not valid") || errorMessage.includes("API_KEY_INVALID")) {
+                props.onApiKeyError();
+            } else {
+                alert(errorMessage);
+            }
         } finally {
             setIsGeneratingThemes(false);
         }
-    }, [language]);
+    }, [language, props.apiKey, props.onApiKeyError]);
 
 
     useEffect(() => {
@@ -106,6 +118,10 @@ export const DirectorBridgeModal: React.FC<DirectorBridgeModalProps> = (props) =
     };
 
     const handleGenerateIdeas = async () => {
+        if (!props.apiKey) {
+            props.onApiKeyError();
+            return;
+        }
         setIsGenerating(true);
         setIdeas([]);
         setSelectedIdea(null);
@@ -118,11 +134,16 @@ export const DirectorBridgeModal: React.FC<DirectorBridgeModalProps> = (props) =
                 characterNames: selectedCharacterNames,
                 theme: finalTheme || 'random',
                 language: languageMap[language],
-            });
+            }, props.apiKey);
             setIdeas(generatedIdeas);
             setStep(2);
         } catch (e) {
-            alert(e instanceof Error ? e.message : 'Failed to generate ideas');
+            const errorMessage = e instanceof Error ? e.message : 'Failed to generate ideas';
+             if (errorMessage.includes("API key not valid") || errorMessage.includes("API_KEY_INVALID")) {
+                props.onApiKeyError();
+            } else {
+                alert(errorMessage);
+            }
         } finally {
             setIsGenerating(false);
         }

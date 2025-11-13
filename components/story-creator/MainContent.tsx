@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ScriptEditor } from './ScriptEditor';
 import { Storyboard } from './Storyboard';
@@ -7,7 +8,6 @@ import type { Character, DirectingSettings, StoryboardScene, PublishingKitData, 
 
 type ActiveTab = 'editor' | 'storyboard' | 'publishingKit';
 
-// FIX: Removed unused API key props to resolve type errors in parent and child components.
 interface MainContentProps {
     logline: string;
     setLogline: (value: string) => void;
@@ -16,7 +16,6 @@ interface MainContentProps {
     sceneCount: number;
     setSceneCount: (value: number) => void;
     isGenerating: boolean;
-    // FIX: Update prop type to accept an async function.
     onGenerateStoryboard: () => Promise<void>;
     storyboard: StoryboardScene[];
     error: string | null;
@@ -38,9 +37,11 @@ interface MainContentProps {
     setIsSpeechModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
     isPhotoStyleModalOpen: boolean;
     setIsPhotoStyleModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    apiKey: string | null;
+    onApiKeyError: () => void;
 }
 
-export const MainContent: React.FC<MainContentProps> = ({ activeTab, setActiveTab, publishingKit, ...props }) => {
+export const MainContent: React.FC<MainContentProps> = ({ activeTab, setActiveTab, publishingKit, apiKey, onApiKeyError, ...props }) => {
     const { t } = useLocalization();
 
     const TabButton: React.FC<{ tabId: ActiveTab; label: string }> = ({ tabId, label }) => (
@@ -60,15 +61,17 @@ export const MainContent: React.FC<MainContentProps> = ({ activeTab, setActiveTa
                 {publishingKit && <TabButton tabId="publishingKit" label={t('storyCreator.publishingKit') as string} />}
             </div>
             
-            {activeTab === 'editor' && <ScriptEditor {...props} />}
-            {/* FIX: Removed props that are not defined on StoryboardProps. */}
+            {activeTab === 'editor' && <ScriptEditor {...props} apiKey={apiKey} onApiKeyError={onApiKeyError} />}
             {activeTab === 'storyboard' && <Storyboard
                 {...props}
+                apiKey={apiKey}
+                onApiKeyError={onApiKeyError}
             />}
-            {/* FIX: Removed props that are not defined on PublishingKitViewProps. */}
             {activeTab === 'publishingKit' && publishingKit && <PublishingKitView
                 kitData={publishingKit}
                 {...props}
+                apiKey={apiKey}
+                onApiKeyError={onApiKeyError}
             />}
         </>
     );

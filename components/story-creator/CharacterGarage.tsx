@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { Character } from '../../types';
 import { useLocalization } from '../../i18n';
@@ -10,9 +11,11 @@ import { ChevronRightIcon } from '../icons/ChevronRightIcon';
 interface CharacterGarageProps {
     characters: Character[];
     setCharacters: React.Dispatch<React.SetStateAction<Character[]>>;
+    apiKey: string | null;
+    onApiKeyError: () => void;
 }
 
-export const CharacterGarage: React.FC<CharacterGarageProps> = ({ characters, setCharacters }) => {
+export const CharacterGarage: React.FC<CharacterGarageProps> = ({ characters, setCharacters, apiKey, onApiKeyError }) => {
     const { t } = useLocalization();
     const [isWorkshopOpen, setIsWorkshopOpen] = useState(false);
     const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
@@ -68,22 +71,18 @@ export const CharacterGarage: React.FC<CharacterGarageProps> = ({ characters, se
     return (
         <div className="bg-base-200 rounded-xl border border-base-300">
             <div className="p-4">
-                {/* FIX: Cast result of t() to string */}
                 <h2 className="text-xl font-bold">{t('storyCreator.characterGarage') as string}</h2>
             </div>
             <div className="p-4 border-t border-base-300 space-y-4">
-                {/* FIX: Cast result of t() to string */}
                 <p className="text-sm text-gray-400">{t('storyCreator.garageDescription') as string}</p>
                 <button 
                     onClick={handleAddNew}
                     className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-base-200 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {/* FIX: Cast result of t() to string */}
                     {t('storyCreator.openCharacterWorkshop') as string}
                 </button>
                 <div className="mt-4 min-h-[100px] flex items-center justify-center">
                     {characters.length === 0 ? (
-                        /* FIX: Cast result of t() to string */
                         <p className="text-gray-500 italic text-center">{t('storyCreator.garageEmpty') as string}</p>
                     ) : (
                         <div className="w-full">
@@ -132,6 +131,8 @@ export const CharacterGarage: React.FC<CharacterGarageProps> = ({ characters, se
                     onClose={() => setIsWorkshopOpen(false)}
                     onSave={handleSaveCharacter}
                     initialCharacter={editingCharacter}
+                    apiKey={apiKey}
+                    onApiKeyError={onApiKeyError}
                 />
             )}
         </div>

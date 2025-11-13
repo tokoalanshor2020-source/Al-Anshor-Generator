@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, useCallback, PropsWithChildren } from 'react';
 
 const LANGUAGE_STORAGE_key = 'veo-app-language';
@@ -73,8 +74,9 @@ const enTranslations: Translations = {
     downloadButton: "Download Video",
     closeButton: "Close",
     generationFailed: "Generation Failed",
-    errorRateLimit: "The service is currently busy due to high demand. Please wait a moment and try again.",
-    errorApiKeyNotFound: "Your API key is invalid or could not be found. Please select a valid key to continue.",
+    errorBillingRequired: "This feature requires an API Key with billing enabled.",
+    errorModelOverloaded: "The model is currently overloaded. The request was automatically retried but failed. Please try again in a few moments.",
+    errorApiKeyNotFound: "Your API key is invalid or could not be found. Please enter a valid key to continue.",
     alertEnterPrompt: "Please enter a prompt.",
     alertSetStoryApiKey: "Please set an active Story API Key before generating.",
     alertSetVideoApiKey: "Please set an active Professional Video & Thumbnail API key before generating.",
@@ -85,11 +87,13 @@ const enTranslations: Translations = {
     backToEditor: "Back to Editor",
     confirmButton: "OK",
     apiKeySelection: {
-      title: "API Key Selection Required",
-      description: "To use the application, please select your Google AI API Key. If you don't have one, you will be guided to create it and enable billing.",
-      billingInfo: "Billing is required to use this feature. Learn more.",
-      button: "Select API Key",
+      title: "API Key Required",
+      description: "To begin, please enter your Google AI API Key. If you don't have one, you can create one easily.",
+      billingInfo: "This feature requires an API Key with billing enabled.",
+      button: "Validate & Save Key",
     },
+    apiKeyInputPlaceholder: "Enter your Google AI API Key here",
+    validatingButton: "Validating...",
     publishingKit: {
       copyButton: "Copy",
       copiedButton: "Copied!",
@@ -120,6 +124,32 @@ const enTranslations: Translations = {
       videoPromptLabel: "Video Prompt (Visuals)",
       audioPromptLabel: "Audio Prompt (Narration & Sound)",
     },
+    videoOverlayEditor: {
+      title: "Video Overlay Editor",
+      uploadVideo: {
+        title: "1. Upload Video",
+        button: "Choose Video File"
+      },
+      addOverlays: {
+        title: "2. Add Overlays",
+        addText: "Add Text Layer",
+        addImage: "Add Image Layer"
+      },
+      layers: {
+        title: "3. Layers",
+        imageLayer: "Image Layer"
+      },
+      render: {
+        title: "4. Render Video",
+        button: "Render Video",
+        renderingButton: "Rendering... ({progress}%)",
+        completeTitle: "Render Complete!",
+        downloadButton: "Download Video"
+      },
+      placeholder: {
+        upload: "Upload a video to begin editing."
+      }
+    },
     tutorial: {
         title: "Application Tutorial",
         textTutorial: "Text Tutorial",
@@ -138,7 +168,7 @@ const enTranslations: Translations = {
             intro: "Use this workflow to generate a video concept by analyzing existing images or short video clips.",
             step1: "<strong>Step 1: Analyze.</strong> In the 'Editor' tab, click 'Analyze References'. Upload your media files (images or videos up to 10s).",
             step2: "<strong>Step 2: Generate.</strong> Click 'Analyze & Generate Prompts'. The AI will provide two options: a 'Simple Cinematic Prompt' and a 'Detailed JSON Prompt'.",
-            step3: "<strong>Step 3: Create.</strong> Choose the prompt you like and click the corresponding 'Generate Video' button. This will take you directly to the Video Generator with the prompt ready to go."
+            step3: "<strong>Step 3: Create.</strong> Choose the prompt you like and the corresponding 'Generate Video' button will take you directly to the Video Generator with the prompt ready to go."
         },
         workflow3: {
             title: "Workflow 3: Affiliate Video Creator",
@@ -193,6 +223,7 @@ const enTranslations: Translations = {
       ideaWithReferenceDescription: "Upload videos or photos for the AI to analyze into a story idea and cinematic prompt.",
       openReferenceIdea: "Analyze References",
       createAffiliateVideo: "Create Affiliate Video",
+      videoOverlayEditor: "Video Overlay Editor",
       storyTitle: "Story Title:",
       storyTitlePlaceholder: "e.g., Rino the Red Racing Car and Goro the Brave Monster Truck",
       storyScript: "Story Script / Summary:",
@@ -543,7 +574,6 @@ const enTranslations: Translations = {
         playlistInfo: "Playlist Information",
         playlistTitleLabel: "Playlist Title (multi-line):",
         songListLabel: "Song List (separate with new lines):",
-// FIX: Corrected multiple syntax errors (missing colons) in this object.
         "songListPlaceholder": "00:00 Song 1\n01:23 Song 2\n2. Song 3",
         autoRemove: "Auto-remove Timestamps/Numbers",
         textSettings: "Text Settings",
@@ -705,8 +735,9 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
     downloadButton: "Unduh Video",
     closeButton: "Tutup",
     generationFailed: "Pembuatan Gagal",
-    errorRateLimit: "Layanan sedang sibuk karena permintaan tinggi. Harap tunggu sejenak dan coba lagi.",
-    errorApiKeyNotFound: "Kunci API Anda tidak valid atau tidak dapat ditemukan. Silakan pilih kunci yang valid untuk melanjutkan.",
+    errorBillingRequired: "Fitur ini memerlukan Kunci API yang tagihannya aktif.",
+    errorModelOverloaded: "Layanan sedang sibuk karena permintaan tinggi. Permintaan telah dicoba ulang secara otomatis namun gagal. Harap tunggu sejenak dan coba lagi.",
+    errorApiKeyNotFound: "Kunci API Anda tidak valid atau tidak dapat ditemukan. Silakan masukkan kunci yang valid untuk melanjutkan.",
     alertEnterPrompt: "Silakan masukkan prompt.",
     alertSetStoryApiKey: "Silakan atur Kunci API Cerita yang aktif sebelum melanjutkan.",
     alertSetVideoApiKey: "Silakan atur Kunci API Video & Thumbnail Profesional yang aktif sebelum membuat video.",
@@ -717,11 +748,13 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
     backToEditor: "Kembali ke Editor",
     confirmButton: "OKE",
     apiKeySelection: {
-      title: "Diperlukan Pemilihan Kunci API",
-      description: "Untuk menggunakan aplikasi, silakan pilih Kunci API Google AI Anda. Jika Anda belum memilikinya, Anda akan dipandu untuk membuatnya dan mengaktifkan penagihan.",
-      billingInfo: "Penagihan diperlukan untuk menggunakan fitur ini. Pelajari lebih lanjut.",
-      button: "Pilih Kunci API",
+      title: "Kunci API Diperlukan",
+      description: "Untuk memulai, silakan masukkan Kunci API Google AI Anda. Jika Anda belum memilikinya, Anda dapat membuatnya dengan mudah.",
+      billingInfo: "Fitur ini memerlukan Kunci API yang tagihannya aktif.",
+      button: "Validasi & Simpan Kunci",
     },
+    apiKeyInputPlaceholder: "Masukkan Kunci API Google AI Anda di sini",
+    validatingButton: "Memvalidasi...",
     publishingKit: {
       copyButton: "Salin",
       copiedButton: "Tersalin!",
@@ -751,6 +784,32 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
       combinedPromptLabel: "Prompt Gabungan (Visual & Audio)",
       videoPromptLabel: "Prompt Video (Visual)",
       audioPromptLabel: "Prompt Audio (Narasi & Suara)",
+    },
+    videoOverlayEditor: {
+      title: "Editor Overlay Video",
+      uploadVideo: {
+        title: "1. Unggah Video",
+        button: "Pilih File Video"
+      },
+      addOverlays: {
+        title: "2. Tambah Lapisan",
+        addText: "Tambah Lapisan Teks",
+        addImage: "Tambah Lapisan Gambar"
+      },
+      layers: {
+        title: "3. Lapisan",
+        imageLayer: "Lapisan Gambar"
+      },
+      render: {
+        title: "4. Render Video",
+        button: "Render Video",
+        renderingButton: "Merender... ({progress}%)",
+        completeTitle: "Render Selesai!",
+        downloadButton: "Unduh Video"
+      },
+      placeholder: {
+        upload: "Unggah video untuk memulai penyuntingan."
+      }
     },
     tutorial: {
         title: "Tutorial Aplikasi",
@@ -824,7 +883,8 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
       ideaWithReference: "Buat Ide Dengan Referensi",
       ideaWithReferenceDescription: "Unggah video atau foto untuk dianalisa oleh AI menjadi ide cerita dan prompt sinematik.",
       openReferenceIdea: "Analisa Referensi",
-      createAffiliateVideo: "Buat Video Affiliate",
+      createAffiliateVideo: "Buat Video Afiliasi",
+      videoOverlayEditor: "Editor Overlay Video",
       storyTitle: "Judul Cerita:",
       storyTitlePlaceholder: "Contoh: Rino si Mobil Balap Merah dan Goro si Truk Monster Pemberani",
       storyScript: "Naskah Cerita / Ringkasan:",
@@ -1175,7 +1235,6 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
         playlistInfo: "Informasi Playlist",
         playlistTitleLabel: "Judul Playlist (bisa multi-baris):",
         songListLabel: "Daftar Lagu (pisahkan dengan baris baru):",
-// FIX: Corrected multiple syntax errors (missing colons) in this object.
         "songListPlaceholder": "00:00 Lagu 1\n01:23 Lagu 2\n2. Lagu 3",
         autoRemove: "Hapus Timestamp/Nomor Otomatis",
         textSettings: "Pengaturan Teks",
@@ -1340,7 +1399,6 @@ const translations: { [key in Language]: Translations } = {
     fr: frTranslations,
 };
 
-// FIX: Add LanguageProvider and useLocalization to provide internationalization context to the application.
 interface LanguageContextType {
     language: Language;
     setLanguage: (language: Language) => void;

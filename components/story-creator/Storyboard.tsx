@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { Character, DirectingSettings, StoryboardScene, VideoGeneratorOrigin } from '../../types';
 import { useLocalization } from '../../i18n';
@@ -12,6 +13,8 @@ interface StoryboardProps {
     characters: Character[];
     directingSettings: DirectingSettings;
     onUpdateScene: (sceneIndex: number, updatedPrompts: Partial<Pick<StoryboardScene, 'blueprintPrompt' | 'cinematicPrompt'>>) => void;
+    apiKey: string | null;
+    onApiKeyError: () => void;
 }
 
 interface SceneCardProps {
@@ -21,6 +24,8 @@ interface SceneCardProps {
     characters: Character[];
     directingSettings: DirectingSettings;
     onUpdateScene: (sceneIndex: number, updatedPrompts: Partial<Pick<StoryboardScene, 'blueprintPrompt' | 'cinematicPrompt'>>) => void;
+    apiKey: string | null;
+    onApiKeyError: () => void;
 }
 
 const PromptDisplay: React.FC<{
@@ -45,7 +50,6 @@ const PromptDisplay: React.FC<{
                         onClick={() => onProceedToVideo(content, undefined, 'storyboard')}
                         className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors"
                     >
-                        {/* FIX: Cast result of t() to string */}
                         {t('storyCreator.useThisPrompt') as string}
                     </button>
                 </div>
@@ -54,22 +58,28 @@ const PromptDisplay: React.FC<{
     );
 };
 
-const SceneCard: React.FC<SceneCardProps> = ({ scene, index, onProceedToVideo, characters, directingSettings, onUpdateScene }) => {
+const SceneCard: React.FC<SceneCardProps> = ({ scene, index, onProceedToVideo, characters, directingSettings, onUpdateScene, apiKey, onApiKeyError }) => {
     const { t } = useLocalization();
     const [isGeneratingBlueprint, setIsGeneratingBlueprint] = useState(false);
     const [isGeneratingCinematic, setIsGeneratingCinematic] = useState(false);
     
-    // Read prompts from the central state via props
     const blueprint = scene.blueprintPrompt || '';
     const cinematicPrompt = scene.cinematicPrompt || '';
 
     const handleGenerateBlueprint = async () => {
+        if (!apiKey) {
+            onApiKeyError();
+            return;
+        }
         setIsGeneratingBlueprint(true);
         try {
-            const result = await generateBlueprintPrompt(scene, characters, directingSettings);
+            const result = await generateBlueprintPrompt(scene, characters, directingSettings, apiKey);
             onUpdateScene(index, { blueprintPrompt: result });
         } catch (e) {
             const errorMessage = `Error: ${e instanceof Error ? e.message : 'Unknown error'}`;
+             if (errorMessage.includes("API key not valid") || errorMessage.includes("API_KEY_INVALID")) {
+                onApiKeyError();
+            }
             onUpdateScene(index, { blueprintPrompt: errorMessage });
         } finally {
             setIsGeneratingBlueprint(false);
@@ -77,12 +87,19 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, index, onProceedToVideo, c
     };
 
     const handleGenerateCinematic = async () => {
+        if (!apiKey) {
+            onApiKeyError();
+            return;
+        }
         setIsGeneratingCinematic(true);
         try {
-            const result = await generateCinematicPrompt(scene, characters, directingSettings);
+            const result = await generateCinematicPrompt(scene, characters, directingSettings, apiKey);
             onUpdateScene(index, { cinematicPrompt: result });
         } catch (e) {
             const errorMessage = `Error: ${e instanceof Error ? e.message : 'Unknown error'}`;
+             if (errorMessage.includes("API key not valid") || errorMessage.includes("API_KEY_INVALID")) {
+                onApiKeyError();
+            }
             onUpdateScene(index, { cinematicPrompt: errorMessage });
         } finally {
             setIsGeneratingCinematic(false);
@@ -93,7 +110,6 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, index, onProceedToVideo, c
         <div className="bg-base-200/50 border border-base-300 p-4 rounded-xl shadow-md">
             <div className="flex items-start gap-4">
                 <div className="bg-base-300 text-amber-400 font-bold rounded-lg w-16 h-16 flex flex-col items-center justify-center text-center flex-shrink-0">
-                    {/* FIX: Cast result of t() to string */}
                     <span className="text-xs uppercase tracking-wider">{t('storyCreator.scene') as string}</span>
                     <span className="text-3xl">{scene.scene_number || (index + 1)}</span>
                 </div>
@@ -102,26 +118,22 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, index, onProceedToVideo, c
                     <p className="text-gray-300">{scene.scene_summary}</p>
                     
                     <div className="mt-3 pt-3 border-t border-gray-700/50">
-                        {/* FIX: Cast result of t() to string */}
                         <h5 className="font-semibold text-amber-400 text-sm">{t('storyCreator.cinematography') as string}</h5>
                         <p className="text-sm text-gray-400 italic mt-1">{scene.cinematography?.shot_type}, {scene.cinematography?.camera_angle}</p>
                     </div>
 
                     <div className="mt-3">
-                        {/* FIX: Cast result of t() to string */}
                         <h5 className="font-semibold text-amber-400 text-sm">{t('storyCreator.soundEffects') as string}</h5>
                          {scene.sound_design?.sfx?.length > 0 ? (
                             <ul className="text-sm mt-1 list-disc list-inside text-gray-400">
                                 {scene.sound_design.sfx.map((s, i) => <li key={i}>{s}</li>)}
                             </ul>
                          ) : (
-                            /* FIX: Cast result of t() to string */
                             <p className="text-sm text-gray-500 mt-1 italic">{t('storyCreator.noSfx') as string}</p>
                          )}
                     </div>
                      {scene.sound_design?.audio_mixing_guide && (
                         <div className="mt-3">
-                            {/* FIX: Cast result of t() to string */}
                             <h5 className="font-semibold text-purple-400 text-sm">{t('storyCreator.mixingGuide') as string}</h5>
                             <p className="text-sm text-gray-400 italic mt-1">{scene.sound_design.audio_mixing_guide}</p>
                         </div>
@@ -130,11 +142,9 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, index, onProceedToVideo, c
             </div>
             <div className="mt-4 pt-4 border-t border-gray-700/50">
                  <div className="flex justify-end items-center gap-2">
-                    {/* FIX: Cast result of t() to string */}
                     <button onClick={handleGenerateBlueprint} disabled={isGeneratingBlueprint} className="btn-sm bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-semibold py-1 px-3 rounded-lg text-xs">
                         {isGeneratingBlueprint ? '...' : t('storyCreator.generateBlueprint') as string}
                     </button>
-                    {/* FIX: Cast result of t() to string */}
                     <button onClick={handleGenerateCinematic} disabled={isGeneratingCinematic} className="btn-sm bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50 text-white font-semibold py-1 px-3 rounded-lg text-xs">
                          {isGeneratingCinematic ? '...' : t('storyCreator.generateCinematicPrompt') as string}
                     </button>
@@ -178,9 +188,7 @@ export const Storyboard: React.FC<StoryboardProps> = ({ isGenerating, storyboard
         return (
             <div className="p-6 flex flex-col items-center justify-center h-full text-center text-gray-500 py-20">
                 <CameraReelsIcon className="mb-4" />
-                {/* FIX: Cast result of t() to string */}
                 <p className="text-xl font-semibold">{t('storyCreator.storyboardPlaceholderTitle') as string}</p>
-                {/* FIX: Cast result of t() to string */}
                 <p>{t('storyCreator.storyboardPlaceholderDescription') as string}</p>
             </div>
         );

@@ -8,6 +8,9 @@ interface PublishingKitViewProps {
     characters: Character[];
     storyboard: StoryboardScene[];
     logline: string;
+    // FIX: Add apiKey and onApiKeyError to props.
+    apiKey: string | null;
+    onApiKeyError: () => void;
 }
 
 const CopyButton: React.FC<{ textToCopy: string | string[] }> = ({ textToCopy }) => {
@@ -53,7 +56,7 @@ const AspectRatioSelector: React.FC<{ selected: string; onChange: (value: string
     );
 };
 
-export const PublishingKitView: React.FC<PublishingKitViewProps> = ({ kitData, characters, storyboard, logline }) => {
+export const PublishingKitView: React.FC<PublishingKitViewProps> = ({ kitData, characters, storyboard, logline, apiKey, onApiKeyError }) => {
     const { language, t } = useLocalization();
     
     const [assets, setAssets] = useState<{ [key: string]: LocalizedAsset }>({});
@@ -117,24 +120,34 @@ export const PublishingKitView: React.FC<PublishingKitViewProps> = ({ kitData, c
     }, [selectedLang]);
 
     const generateLocalizedAssets = useCallback(async (langToGen: Language) => {
+        // FIX: Add apiKey check.
+        if (!apiKey) {
+            onApiKeyError();
+            return;
+        }
         if (!assets[langToGen]) {
             setIsGenerating(true);
             setError(null);
             try {
+                // FIX: Pass apiKey to service function.
                 const result = await generateLocalizedPublishingAssets(
                     { storyboard, characters, logline, originalImagePrompt: kitData.thumbnail_concepts[0].image_prompt },
-                    languageMap[langToGen]
+                    languageMap[langToGen],
+                    apiKey
                 );
                 setAssets(prev => ({ ...prev, [langToGen]: result }));
             } catch (err) {
                  const errorMessage = err instanceof Error ? err.message : 'Unknown error';
                  const displayError = errorMessage === 'errorRateLimit' ? t('errorRateLimit') : errorMessage;
+                 if (errorMessage.includes("API key not valid") || errorMessage.includes("API_KEY_INVALID")) {
+                    onApiKeyError();
+                 }
                  setError(displayError as string);
             } finally {
                 setIsGenerating(false);
             }
         }
-    }, [assets, characters, logline, storyboard, t, kitData.thumbnail_concepts]);
+    }, [assets, characters, logline, storyboard, t, kitData.thumbnail_concepts, apiKey, onApiKeyError]);
 
     useEffect(() => {
         if (debouncedLang !== language || !assets[debouncedLang]) {
@@ -190,6 +203,11 @@ export const PublishingKitView: React.FC<PublishingKitViewProps> = ({ kitData, c
     };
     
      const handleGenerateThumbnail = async () => {
+        // FIX: Add apiKey check.
+        if (!apiKey) {
+            onApiKeyError();
+            return;
+        }
         const caption = assets[selectedLang]?.thumbnail_concept?.concept_caption;
         if (!caption) {
             console.error("Caption text not found for the selected language.");
@@ -233,12 +251,16 @@ export const PublishingKitView: React.FC<PublishingKitViewProps> = ({ kitData, c
         }
         
         try {
-            const imageData = await generateThumbnail(promptToUse, aspectRatio);
+            // FIX: Pass apiKey to service function.
+            const imageData = await generateThumbnail(promptToUse, aspectRatio, apiKey);
             const finalImage = await createImageWithOverlay(imageData, caption);
             setThumbImageUrl(finalImage);
         } catch (e) {
             const errorMessage = e instanceof Error ? e.message : 'Unknown error';
             const displayError = errorMessage === 'errorRateLimit' ? t('errorRateLimit') : errorMessage;
+            if (errorMessage.includes("API key not valid") || errorMessage.includes("API_KEY_INVALID")) {
+                onApiKeyError();
+            }
             setError(displayError as string);
         } finally {
             setIsGeneratingThumb(false);

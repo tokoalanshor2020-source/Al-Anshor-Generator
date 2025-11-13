@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Character, ReferenceFile } from '../../types';
 import { useLocalization } from '../../i18n';
@@ -14,6 +15,8 @@ interface CharacterWorkshopModalProps {
     onClose: () => void;
     onSave: (character: Character) => void;
     initialCharacter: Character | null;
+    apiKey: string | null;
+    onApiKeyError: () => void;
 }
 
 const generateUUID = () => {
@@ -31,7 +34,7 @@ const generateUUID = () => {
 const MAX_FILE_SIZE_MB = 25;
 const MAX_VIDEO_DURATION_S = 10;
 
-export const CharacterWorkshopModal: React.FC<CharacterWorkshopModalProps> = ({ isOpen, onClose, onSave, initialCharacter }) => {
+export const CharacterWorkshopModal: React.FC<CharacterWorkshopModalProps> = ({ isOpen, onClose, onSave, initialCharacter, apiKey, onApiKeyError }) => {
     const { t } = useLocalization();
     
     const [isProcessingAi, setIsProcessingAi] = useState(false);
@@ -178,6 +181,10 @@ export const CharacterWorkshopModal: React.FC<CharacterWorkshopModalProps> = ({ 
     };
 
     const handleDesignWithAi = async () => {
+        if (!apiKey) {
+            onApiKeyError();
+            return;
+        }
         if (referenceFiles.length === 0 && !idea.trim()) {
             alert(t('characterWorkshop.alertUploadOrDescribe'));
             return;
@@ -188,22 +195,27 @@ export const CharacterWorkshopModal: React.FC<CharacterWorkshopModalProps> = ({ 
             const devData = await developCharacter({
                 idea,
                 referenceFiles: referenceFiles.map(f => ({ base64: f.base64, mimeType: f.mimeType })),
-            });
+            }, apiKey);
             setBrandName(devData.brand_name);
             setModelName(devData.model_name);
             setConsistencyKey(devData.consistency_key);
             setMaterial(devData.material);
             setDesignLanguage(devData.design_language);
             setKeyFeatures(devData.key_features);
-setCharacterPersonality(devData.character_personality);
+            setCharacterPersonality(devData.character_personality);
             setPhysicalDetails(devData.physical_details);
             setScaleAndSize(devData.scale_and_size);
 
-            const dnaSuggestions = await generateActionDna(devData);
+            const dnaSuggestions = await generateActionDna(devData, apiKey);
             setActionDNA(dnaSuggestions);
 
         } catch (e) {
-            alert(e instanceof Error ? e.message : 'An unknown error occurred');
+            const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred';
+             if (errorMessage.includes("API key not valid") || errorMessage.includes("API_KEY_INVALID")) {
+                onApiKeyError();
+            } else {
+                alert(errorMessage);
+            }
         } finally {
             setIsProcessingAi(false);
         }

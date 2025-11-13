@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useLocalization, languageMap } from '../../i18n';
 import type { StoredReferenceFile, PhotoStyleCreatorState, PhotoType, PhotoStyleRecommendations, ReferenceFile, MusicThumbnailStyle } from '../../types';
@@ -22,7 +23,8 @@ import { MagicWandIcon } from '../icons/MagicWandIcon';
 interface PhotoStyleCreatorModalProps {
     isOpen: boolean;
     onClose: () => void;
-    setHasSelectedKey: (hasKey: boolean) => void;
+    apiKey: string | null;
+    onApiKeyError: () => void;
 }
 
 const generateUUID = () => window.crypto.randomUUID();
@@ -71,7 +73,7 @@ const initialPhotoStyleCreatorState: PhotoStyleCreatorState = {
     musicInspirationImage: null,
     musicUseInspiration: false,
     musicTitle: 'My Awesome Playlist\n- 2024 -',
-    musicSongList: `00:00 - Artist Name - Song Title 1\n03:15 - Another Artist - Another Song\n06:30 - Cool Band - Best Track Ever\n09:45 - Musician - The Last Song`,
+    musicSongList: `01. - Artist Name - Song Title 103.\n02. - Another Artist - Another Song Musician\n02. - Cool Band - Best Track Ever\n02. - Musician - The Last Song`,
     musicAutoClean: true,
     musicTitleFontSize: 80,
     musicSongsFontSize: 24,
@@ -163,7 +165,7 @@ const RadioGroup: React.FC<RadioGroupProps> = ({ value, onChange, options }) => 
 );
 
 
-export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ isOpen, onClose, setHasSelectedKey }) => {
+export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ isOpen, onClose, apiKey, onApiKeyError }) => {
     const { t, language } = useLocalization();
     const [formState, setFormState] = useState<PhotoStyleCreatorState>(initialPhotoStyleCreatorState);
     
@@ -174,7 +176,7 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
 
     const [generatedImages, setGeneratedImages] = useState<{ base64: string, mimeType: string }[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<React.ReactNode | null>(null);
     
     const [recommendations, setRecommendations] = useState<PhotoStyleRecommendations | null>(null);
     const [isGeneratingRecs, setIsGeneratingRecs] = useState(false);
@@ -187,6 +189,30 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
     const [musicInspirationFile, setMusicInspirationFile] = useState<File | null>(null);
     const [loadingMessage, setLoadingMessage] = useState<string>('');
     const [isMusicLoading, setIsMusicLoading] = useState(false);
+    
+    const handleApiError = useCallback((e: unknown) => {
+        console.error("API Error in Photo Style Creator:", e);
+        const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+        
+        if (errorMessage.includes("API key not valid") || errorMessage.includes("API_KEY_INVALID")) {
+            onApiKeyError();
+            setError(t('errorApiKeyNotFound') as string);
+        } else if (errorMessage === 'errorModelOverloaded') {
+            setError(t('errorModelOverloaded') as string);
+        } else if (errorMessage === 'errorBillingRequired') {
+            setError(
+                <>
+                    {t('apiKeySelection.billingInfo') as string}{' '}
+                    <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="underline font-bold">
+                        Learn more.
+                    </a>
+                </>
+            );
+        } else {
+            setError(errorMessage);
+        }
+    }, [t, onApiKeyError]);
+
 
     useEffect(() => {
         if (isOpen) {
@@ -211,20 +237,17 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
     useEffect(() => {
         const referenceFiles = formState.photoType === 'product' ? formState.productFiles : formState.referenceFiles;
 
-        // Fetch recommendations if there are reference files AND we are not in the music thumbnail creator mode.
         if (referenceFiles.length > 0 && (formState.photoType !== 'thumbnail' || formState.thumbnailMode === 'normal')) {
             const getRecs = async () => {
+                if (!apiKey) return;
                 setIsGeneratingRecs(true);
                 setRecommendations(null); // Clear old recs
                 try {
-                    const recs = await generatePhotoStyleRecommendations(referenceFiles, formState.photoType, languageMap[language]);
+                    const recs = await generatePhotoStyleRecommendations(referenceFiles, formState.photoType, languageMap[language], apiKey);
                     setRecommendations(recs);
                 } catch (e) {
                     console.error("Failed to get recommendations:", e);
-                    const errorMessage = e instanceof Error ? e.message : 'Failed to get recommendations';
-                    if (errorMessage.includes("Requested entity was not found.")) {
-                        setHasSelectedKey(false);
-                    }
+                    handleApiError(e);
                 } finally {
                     setIsGeneratingRecs(false);
                 }
@@ -233,7 +256,7 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
         } else {
             setRecommendations(null); // Clear recs if image is removed
         }
-    }, [formState.referenceFiles, formState.productFiles, formState.photoType, language, formState.thumbnailMode, setHasSelectedKey]);
+    }, [formState.referenceFiles, formState.productFiles, formState.photoType, language, formState.thumbnailMode, apiKey, handleApiError]);
 
 
     const handleStateChange = <K extends keyof PhotoStyleCreatorState>(key: K, value: PhotoStyleCreatorState[K]) => {
@@ -251,7 +274,7 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
             setLocalProductFiles(updatedLocalFiles);
             handleStateChange('productFiles', serializableFiles);
         }
-    }, []);
+    }, [handleStateChange]);
 
     const validateAndAddFiles = useCallback(async (files: FileList, type: 'reference' | 'product') => {
         const processFile = (file: File): Promise<ReferenceFile | null> => {
@@ -324,6 +347,10 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
     };
 
     const handleGenerate = async () => {
+        if (!apiKey) {
+            onApiKeyError();
+            return;
+        }
         setError(null);
         if (formState.photoType === 'artist_model' && formState.referenceFiles.length === 0 && !formState.prompt) {
             setError(t('photoStyleCreator.errorNoPrompt') as string);
@@ -341,14 +368,10 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
         setIsLoading(true);
         setGeneratedImages([]);
         try {
-            const images = await generatePhotoStyleImages(formState);
+            const images = await generatePhotoStyleImages(formState, apiKey);
             setGeneratedImages(images);
         } catch (e) {
-            const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred';
-            if (errorMessage.includes("Requested entity was not found.")) {
-                setHasSelectedKey(false);
-            }
-            setError(errorMessage);
+            handleApiError(e);
         } finally {
             setIsLoading(false);
         }
@@ -358,6 +381,10 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
         type: 'description' | 'overlay',
         targetField: 'prompt' | 'productDescription' | 'thumbnailTopic' | 'thumbnailOverlayText'
     ) => {
+        if (!apiKey) {
+            onApiKeyError();
+            return;
+        }
         let filesToUse: ReferenceFile[] = [];
         if (targetField === 'productDescription') {
             filesToUse = localProductFiles;
@@ -374,14 +401,10 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
         setError(null);
     
         try {
-            const text = await generateTextFromImage(filesToUse, type, languageMap[language]);
+            const text = await generateTextFromImage(filesToUse, type, languageMap[language], apiKey);
             handleStateChange(targetField, text as any);
         } catch (e) {
-            const errorMessage = e instanceof Error ? e.message : 'Failed to generate text.';
-            if (errorMessage.includes("Requested entity was not found.")) {
-                setHasSelectedKey(false);
-            }
-            setError(errorMessage);
+            handleApiError(e);
         } finally {
             setAutoGeneratingField(null);
         }
@@ -600,6 +623,7 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
     };
     
     const handleGenerateAIBg = async () => {
+        if (!apiKey) { onApiKeyError(); return; }
         setIsMusicLoading(true);
         setError(null);
         try {
@@ -608,10 +632,10 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                 const reader = new FileReader();
                 reader.onloadend = async () => {
                     const base64Data = (reader.result as string).split(',')[1];
-                    const generatedPrompt = await generatePromptFromInspirationImage({ base64: base64Data, mimeType: musicInspirationFile.type });
+                    const generatedPrompt = await generatePromptFromInspirationImage({ base64: base64Data, mimeType: musicInspirationFile.type }, apiKey);
                     handleStateChange('musicAiThemePrompt', generatedPrompt as any);
                     setLoadingMessage(t('photoStyleCreator.thumbnailMusic.generatingBg') as string);
-                    const { base64, mimeType } = await generateMusicThumbnailBackground(generatedPrompt);
+                    const { base64, mimeType } = await generateMusicThumbnailBackground(generatedPrompt, apiKey);
                     const img = new Image();
                     img.onload = () => setBackgroundImage(img);
                     img.src = `data:${mimeType};base64,${base64}`;
@@ -623,17 +647,13 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                     return;
                 }
                 setLoadingMessage(t('photoStyleCreator.thumbnailMusic.generatingBg') as string);
-                const { base64, mimeType } = await generateMusicThumbnailBackground(formState.musicAiThemePrompt);
+                const { base64, mimeType } = await generateMusicThumbnailBackground(formState.musicAiThemePrompt, apiKey);
                 const img = new Image();
                 img.onload = () => setBackgroundImage(img);
                 img.src = `data:${mimeType};base64,${base64}`;
             }
         } catch (e) {
-            const errorMessage = e instanceof Error ? e.message : 'Failed to generate background';
-            if (errorMessage.includes("Requested entity was not found.")) {
-                setHasSelectedKey(false);
-            }
-            setError(errorMessage);
+            handleApiError(e)
         } finally {
             setIsMusicLoading(false);
             setLoadingMessage('');
@@ -641,6 +661,7 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
     };
     
     const handleGenerateAITextStyle = async () => {
+        if (!apiKey) { onApiKeyError(); return; }
         if (!formState.musicAiThemePrompt.trim()) {
             alert(t('photoStyleCreator.thumbnailMusic.errorTheme'));
             return;
@@ -649,7 +670,7 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
         setLoadingMessage(t('photoStyleCreator.thumbnailMusic.generatingStyle') as string);
         setError(null);
         try {
-            const styles = await generateMusicThumbnailStyle(formState.musicAiThemePrompt, languageMap[language]);
+            const styles = await generateMusicThumbnailStyle(formState.musicAiThemePrompt, languageMap[language], apiKey);
             handleStateChange('musicTitleFont', styles.fontFamily as any);
             handleStateChange('musicSongsFont', styles.fontFamily as any);
             handleStateChange('musicSongsColor', styles.songsColor as any);
@@ -673,11 +694,7 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
 
             setTitleStyleEffects(styles.outline ? { outline: styles.outline } : null);
         } catch (e) {
-             const errorMessage = e instanceof Error ? e.message : 'Failed to generate text styles';
-            if (errorMessage.includes("Requested entity was not found.")) {
-                setHasSelectedKey(false);
-            }
-             setError(errorMessage);
+             handleApiError(e)
         } finally {
              setIsMusicLoading(false);
              setLoadingMessage('');
@@ -744,7 +761,6 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
             </fieldset>
         </>
     );
-// FIX: Implement renderArtistModelControls function.
     const renderArtistModelControls = () => (
          <>
             <fieldset className="border-t border-base-300 pt-5 space-y-5">
@@ -776,7 +792,6 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
         </>
     );
 
-// FIX: Implement renderProductControls function.
     const renderProductControls = () => (
          <>
             <fieldset className="border-t border-base-300 pt-5 space-y-5">
@@ -822,279 +837,219 @@ export const PhotoStyleCreatorModal: React.FC<PhotoStyleCreatorModalProps> = ({ 
                                  <label htmlFor="music-use-inspiration" className="ml-2 block text-sm text-gray-300">{T('photoStyleCreator.thumbnailMusic.useAsInspiration')}</label>
                              </div>
                          </div>
-                         <button onClick={handleGenerateAIBg} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md shadow transition-colors">
-                             {T('photoStyleCreator.thumbnailMusic.generateAIBg')}
+                         <button onClick={handleGenerateAIBg} disabled={isMusicLoading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md disabled:opacity-50">
+                            {isMusicLoading && loadingMessage === T('photoStyleCreator.thumbnailMusic.generatingBg') ? loadingMessage : T('photoStyleCreator.thumbnailMusic.generateAIBg')}
                          </button>
                      </div>
                  </div>
+                 
                  {/* Playlist Info */}
-                 <div className="p-4 border border-base-300 rounded-lg bg-base-300/30">
-                     <h3 className="text-lg font-bold mb-3 text-gray-200">{T('photoStyleCreator.thumbnailMusic.playlistInfo')}</h3>
-                     <div className="space-y-4">
-                         <div>
-                             <label htmlFor="music-title" className="block text-sm font-medium text-gray-400 mb-1">{T('photoStyleCreator.thumbnailMusic.playlistTitleLabel')}</label>
-                             <textarea id="music-title" value={formState.musicTitle} onChange={e => handleStateChange('musicTitle', e.target.value as any)} rows={2} className="w-full p-2 bg-base-200 border border-gray-600 rounded-md text-sm"></textarea>
-                         </div>
-                         <div>
-                             <label htmlFor="music-song-list" className="block text-sm font-medium text-gray-400 mb-1">{T('photoStyleCreator.thumbnailMusic.songListLabel')}</label>
-                             <textarea id="music-song-list" value={formState.musicSongList} onChange={e => handleStateChange('musicSongList', e.target.value as any)} rows={6} className="w-full p-2 bg-base-200 border border-gray-600 rounded-md text-sm" placeholder={T('photoStyleCreator.thumbnailMusic.songListPlaceholder')}></textarea>
-                         </div>
-                         <div className="flex items-center">
-                             <input type="checkbox" id="music-auto-clean" checked={formState.musicAutoClean} onChange={e => handleStateChange('musicAutoClean', e.target.checked as any)} className="h-4 w-4 text-brand-primary bg-base-100 border-gray-500 rounded focus:ring-brand-secondary"/>
-                             <label htmlFor="music-auto-clean" className="ml-2 block text-sm text-gray-300">{T('photoStyleCreator.thumbnailMusic.autoRemove')}</label>
-                         </div>
-                     </div>
-                 </div>
-                 {/* Text Settings */}
-                 <div className="p-4 border border-base-300 rounded-lg bg-base-300/30">
-                     <h3 className="text-lg font-bold mb-3 text-gray-200">{T('photoStyleCreator.thumbnailMusic.textSettings')}</h3>
-                     <div className="space-y-4">
-                         <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-1">{T('photoStyleCreator.thumbnailMusic.aiTextStyleLabel')}</label>
-                             <button onClick={handleGenerateAITextStyle} className="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-md shadow transition-colors">
-                                 {T('photoStyleCreator.thumbnailMusic.generateAITextStyle')}
-                             </button>
-                         </div>
-                         <div className="grid grid-cols-2 gap-4">
-                             <div>
-                                 <label className="block text-xs text-gray-400 mb-1">{T('photoStyleCreator.thumbnailMusic.titleFontSize')}</label>
-                                 <input type="number" value={formState.musicTitleFontSize} onChange={e => handleStateChange('musicTitleFontSize', Number(e.target.value) as any)} className="w-full p-2 text-center bg-base-200 border border-gray-600 rounded-md text-sm" />
-                             </div>
-                             <div>
-                                 <label className="block text-xs text-gray-400 mb-1">{T('photoStyleCreator.thumbnailMusic.songsFontSize')}</label>
-                                 <input type="number" value={formState.musicSongsFontSize} onChange={e => handleStateChange('musicSongsFontSize', Number(e.target.value) as any)} className="w-full p-2 text-center bg-base-200 border border-gray-600 rounded-md text-sm" />
-                             </div>
-                             <div>
-                                 <label className="block text-xs text-gray-400 mb-1">{T('photoStyleCreator.thumbnailMusic.titleFont')}</label>
-                                 <select value={formState.musicTitleFont} onChange={e => handleStateChange('musicTitleFont', e.target.value as any)} className="w-full p-2 bg-base-200 border border-gray-600 rounded-md text-sm">
-                                     <option>Inter</option><option>Roboto</option><option>Poppins</option><option>Oswald</option><option>Playfair Display</option><option>Lobster</option><option>Arial</option><option>Verdana</option>
-                                 </select>
-                             </div>
-                             <div>
-                                 <label className="block text-xs text-gray-400 mb-1">{T('photoStyleCreator.thumbnailMusic.songsFont')}</label>
-                                 <select value={formState.musicSongsFont} onChange={e => handleStateChange('musicSongsFont', e.target.value as any)} className="w-full p-2 bg-base-200 border border-gray-600 rounded-md text-sm">
-                                    <option>Inter</option><option>Roboto</option><option>Poppins</option><option>Oswald</option><option>Playfair Display</option><option>Lobster</option><option>Arial</option><option>Verdana</option>
-                                 </select>
-                             </div>
-                             <div className="col-span-2">
-                                <label className="block text-xs text-gray-400 mb-1">{T('photoStyleCreator.thumbnailMusic.songsColor')}</label>
-                                <input type="color" value={formState.musicSongsColor} onChange={e => handleStateChange('musicSongsColor', e.target.value as any)} className="w-full h-10 border border-gray-600 rounded-md" />
-                             </div>
-                         </div>
-                     </div>
-                 </div>
-                 {/* Title Effects */}
-                 <div className="p-4 border border-base-300 rounded-lg bg-base-300/30">
-                    <h3 className="text-lg font-bold mb-3 text-gray-200">{T('photoStyleCreator.thumbnailMusic.titleEffects')}</h3>
-                    <div className="space-y-4">
-                        <div className="flex items-center">
-                             <input type="checkbox" id="music-use-gradient" checked={formState.musicUseGradient} onChange={e => handleStateChange('musicUseGradient', e.target.checked as any)} className="h-4 w-4 text-brand-primary bg-base-100 border-gray-500 rounded focus:ring-brand-secondary"/>
-                             <label htmlFor="music-use-gradient" className="ml-2 block text-sm text-gray-300">{T('photoStyleCreator.thumbnailMusic.useGradient')}</label>
+                 <div className="p-4 border border-base-300 rounded-lg bg-base-300/30 space-y-3">
+                    <h3 className="text-lg font-bold text-gray-200">{T('photoStyleCreator.thumbnailMusic.playlistInfo')}</h3>
+                    <div>
+                        <label className="block text-sm text-gray-400 mb-1">{T('photoStyleCreator.thumbnailMusic.playlistTitleLabel')}</label>
+                        <textarea value={formState.musicTitle} onChange={e => handleStateChange('musicTitle', e.target.value as any)} rows={2} className="w-full p-2 bg-base-200 border border-gray-600 rounded-md text-sm" />
+                    </div>
+                    <div>
+                        <label className="block text-sm text-gray-400 mb-1">{T('photoStyleCreator.thumbnailMusic.songListLabel')}</label>
+                        <textarea value={formState.musicSongList} onChange={e => handleStateChange('musicSongList', e.target.value as any)} rows={5} className="w-full p-2 bg-base-200 border border-gray-600 rounded-md text-sm" placeholder={T('photoStyleCreator.thumbnailMusic.songListPlaceholder')} />
+                        <div className="mt-2 flex items-center">
+                            <input type="checkbox" id="music-auto-clean" checked={formState.musicAutoClean} onChange={e => handleStateChange('musicAutoClean', e.target.checked as any)} className="h-4 w-4 text-brand-primary bg-base-100 border-gray-500 rounded focus:ring-brand-secondary"/>
+                            <label htmlFor="music-auto-clean" className="ml-2 block text-sm text-gray-300">{T('photoStyleCreator.thumbnailMusic.autoRemove')}</label>
                         </div>
-                        {formState.musicUseGradient ? (
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs text-gray-400">{T('photoStyleCreator.thumbnailMusic.gradientStart')}</label>
-                                    <input type="color" value={formState.musicGradientStart} onChange={e => handleStateChange('musicGradientStart', e.target.value as any)} className="w-full h-10 border border-gray-600 rounded-md" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs text-gray-400">{T('photoStyleCreator.thumbnailMusic.gradientEnd')}</label>
-                                    <input type="color" value={formState.musicGradientEnd} onChange={e => handleStateChange('musicGradientEnd', e.target.value as any)} className="w-full h-10 border border-gray-600 rounded-md" />
-                                </div>
-                            </div>
-                        ) : (
-                             <div>
-                                 <label className="block text-sm font-medium text-gray-400">{T('photoStyleCreator.thumbnailMusic.titleColor')}</label>
-                                 <input type="color" value={formState.musicTitleColor} onChange={e => handleStateChange('musicTitleColor', e.target.value as any)} className="w-full h-10 border border-gray-600 rounded-md" />
-                             </div>
-                        )}
-                        <div className="flex items-center pt-2 border-t border-gray-600">
-                             <input type="checkbox" id="music-use-shadow" checked={formState.musicUseShadow} onChange={e => handleStateChange('musicUseShadow', e.target.checked as any)} className="h-4 w-4 text-brand-primary bg-base-100 border-gray-500 rounded focus:ring-brand-secondary"/>
-                             <label htmlFor="music-use-shadow" className="ml-2 block text-sm text-gray-300">{T('photoStyleCreator.thumbnailMusic.useShadow')}</label>
-                        </div>
-                        {formState.musicUseShadow && (
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs text-gray-400">{T('photoStyleCreator.thumbnailMusic.shadowColor')}</label>
-                                    <input type="color" value={formState.musicShadowColor} onChange={e => handleStateChange('musicShadowColor', e.target.value as any)} className="w-full h-10 border border-gray-600 rounded-md" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs text-gray-400">{T('photoStyleCreator.thumbnailMusic.shadowBlur')}</label>
-                                    <input type="number" value={formState.musicShadowBlur} onChange={e => handleStateChange('musicShadowBlur', Number(e.target.value) as any)} className="w-full p-2 text-center bg-base-200 border border-gray-600 rounded-md text-sm" />
-                                </div>
-                            </div>
-                        )}
                     </div>
                  </div>
-                 {/* Layout Settings */}
-                <div className="p-4 border border-base-300 rounded-lg bg-base-300/30">
-                    <h3 className="text-lg font-bold mb-3 text-gray-200">{T('photoStyleCreator.thumbnailMusic.layoutSettings')}</h3>
+
+                 {/* Text Settings */}
+                 <div className="p-4 border border-base-300 rounded-lg bg-base-300/30 space-y-3">
+                    <h3 className="text-lg font-bold text-gray-200">{T('photoStyleCreator.thumbnailMusic.textSettings')}</h3>
+                    <div>
+                        <label className="block text-sm text-gray-400 mb-1">{T('photoStyleCreator.thumbnailMusic.aiTextStyleLabel')}</label>
+                        <button onClick={handleGenerateAITextStyle} disabled={isMusicLoading} className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-md disabled:opacity-50">
+                            {isMusicLoading && loadingMessage === T('photoStyleCreator.thumbnailMusic.generatingStyle') ? loadingMessage : T('photoStyleCreator.thumbnailMusic.generateAITextStyle')}
+                        </button>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                             <label className="block text-xs text-gray-400 mb-1">{T('photoStyleCreator.thumbnailMusic.titlePosition')}</label>
-                             <select value={formState.musicTitleAlign} onChange={e => handleStateChange('musicTitleAlign', e.target.value as any)} className="w-full p-2 bg-base-200 border border-gray-600 rounded-md text-sm">
-                                 <option value="left">{T('photoStyleCreator.thumbnailMusic.alignLeft')}</option>
-                                 <option value="center">{T('photoStyleCreator.thumbnailMusic.alignCenter')}</option>
-                                 <option value="right">{T('photoStyleCreator.thumbnailMusic.alignRight')}</option>
-                             </select>
+                            <label className="block text-xs text-gray-400">{T('photoStyleCreator.thumbnailMusic.titleFontSize')}</label>
+                            <input type="range" min="20" max="150" value={formState.musicTitleFontSize} onChange={e => handleStateChange('musicTitleFontSize', parseInt(e.target.value) as any)} className="w-full"/>
                         </div>
                         <div>
-                             <label className="block text-xs text-gray-400 mb-1">{T('photoStyleCreator.thumbnailMusic.songColumns')}</label>
-                             <select value={formState.musicColumnCount} onChange={e => handleStateChange('musicColumnCount', Number(e.target.value) as any)} className="w-full p-2 bg-base-200 border border-gray-600 rounded-md text-sm">
-                                 <option value="1">{T('photoStyleCreator.thumbnailMusic.oneColumn')}</option>
-                                 <option value="2">{T('photoStyleCreator.thumbnailMusic.twoColumns')}</option>
-                                 <option value="4">{T('photoStyleCreator.thumbnailMusic.fourColumns')}</option>
-                             </select>
-                        </div>
-                        <div className="col-span-2">
-                             <label className="block text-xs text-gray-400 mb-1">{T('photoStyleCreator.thumbnailMusic.canvasBgColor')}</label>
-                             <input type="color" value={formState.musicCanvasBgColor} onChange={e => handleStateChange('musicCanvasBgColor', e.target.value as any)} className="w-full h-10 border border-gray-600 rounded-md" />
+                            <label className="block text-xs text-gray-400">{T('photoStyleCreator.thumbnailMusic.songsFontSize')}</label>
+                            <input type="range" min="10" max="50" value={formState.musicSongsFontSize} onChange={e => handleStateChange('musicSongsFontSize', parseInt(e.target.value) as any)} className="w-full"/>
                         </div>
                     </div>
-                </div>
-            </>
-        )
-    };
-    
-    const renderThumbnailControls = () => (
-        <>
-            <div className="flex items-center gap-2 bg-base-300/50 p-1 rounded-lg">
-                <button onClick={() => handleStateChange('thumbnailMode', 'normal')} className={`flex-1 py-2 text-sm rounded-md ${formState.thumbnailMode === 'normal' ? 'bg-brand-primary text-white' : 'hover:bg-base-200'}`}>
-                    {t('photoStyleCreator.thumbnailMusic.normal') as string}
-                </button>
-                <button onClick={() => handleStateChange('thumbnailMode', 'music')} className={`flex-1 py-2 text-sm rounded-md ${formState.thumbnailMode === 'music' ? 'bg-brand-primary text-white' : 'hover:bg-base-200'}`}>
-                    {t('photoStyleCreator.thumbnailMusic.title') as string}
-                </button>
-            </div>
-            {formState.thumbnailMode === 'normal' ? renderNormalThumbnailControls() : renderMusicThumbnailControls()}
-        </>
-    );
+                    <div className="grid grid-cols-2 gap-4">
+                         <div>
+                            <label className="block text-xs text-gray-400">{T('photoStyleCreator.thumbnailMusic.titleFont')}</label>
+                            <select value={formState.musicTitleFont} onChange={e => handleStateChange('musicTitleFont', e.target.value as any)} className="w-full p-1 bg-base-200 border border-gray-600 rounded-md text-xs">
+                                <option>Oswald</option><option>Inter</option><option>Roboto</option><option>Poppins</option><option>Playfair Display</option><option>Lobster</option>
+                            </select>
+                        </div>
+                         <div>
+                            <label className="block text-xs text-gray-400">{T('photoStyleCreator.thumbnailMusic.songsFont')}</label>
+                            <select value={formState.musicSongsFont} onChange={e => handleStateChange('musicSongsFont', e.target.value as any)} className="w-full p-1 bg-base-200 border border-gray-600 rounded-md text-xs">
+                                <option>Inter</option><option>Roboto</option><option>Poppins</option><option>Oswald</option><option>Playfair Display</option><option>Lobster</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs text-gray-400">{T('photoStyleCreator.thumbnailMusic.songsColor')}</label>
+                        <input type="color" value={formState.musicSongsColor} onChange={e => handleStateChange('musicSongsColor', e.target.value as any)} className="w-full h-8 border-none bg-transparent" />
+                    </div>
+                 </div>
 
-    
+                 {/* Title Effects */}
+                 <div className="p-4 border border-base-300 rounded-lg bg-base-300/30 space-y-3">
+                    <h3 className="text-lg font-bold text-gray-200">{T('photoStyleCreator.thumbnailMusic.titleEffects')}</h3>
+                    <div className="flex items-center">
+                        <input type="checkbox" id="music-use-gradient" checked={formState.musicUseGradient} onChange={e => handleStateChange('musicUseGradient', e.target.checked as any)} className="h-4 w-4 text-brand-primary bg-base-100 border-gray-500 rounded focus:ring-brand-secondary"/>
+                        <label htmlFor="music-use-gradient" className="ml-2 block text-sm text-gray-300">{T('photoStyleCreator.thumbnailMusic.useGradient')}</label>
+                    </div>
+                    {formState.musicUseGradient ? (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><label className="text-xs text-gray-400">{T('photoStyleCreator.thumbnailMusic.gradientStart')}</label><input type="color" value={formState.musicGradientStart} onChange={e => handleStateChange('musicGradientStart', e.target.value as any)} className="w-full h-8"/></div>
+                            <div><label className="text-xs text-gray-400">{T('photoStyleCreator.thumbnailMusic.gradientEnd')}</label><input type="color" value={formState.musicGradientEnd} onChange={e => handleStateChange('musicGradientEnd', e.target.value as any)} className="w-full h-8"/></div>
+                        </div>
+                    ) : (
+                        <div><label className="text-xs text-gray-400">{T('photoStyleCreator.thumbnailMusic.titleColor')}</label><input type="color" value={formState.musicTitleColor} onChange={e => handleStateChange('musicTitleColor', e.target.value as any)} className="w-full h-8"/></div>
+                    )}
+                    <div className="flex items-center">
+                        <input type="checkbox" id="music-use-shadow" checked={formState.musicUseShadow} onChange={e => handleStateChange('musicUseShadow', e.target.checked as any)} className="h-4 w-4 text-brand-primary bg-base-100 border-gray-500 rounded focus:ring-brand-secondary"/>
+                        <label htmlFor="music-use-shadow" className="ml-2 block text-sm text-gray-300">{T('photoStyleCreator.thumbnailMusic.useShadow')}</label>
+                    </div>
+                     {formState.musicUseShadow && (
+                        <div className="grid grid-cols-2 gap-4 items-center">
+                            <div><label className="text-xs text-gray-400">{T('photoStyleCreator.thumbnailMusic.shadowColor')}</label><input type="color" value={formState.musicShadowColor} onChange={e => handleStateChange('musicShadowColor', e.target.value as any)} className="w-full h-8"/></div>
+                            <div><label className="text-xs text-gray-400">{T('photoStyleCreator.thumbnailMusic.shadowBlur')}</label><input type="range" min="0" max="50" value={formState.musicShadowBlur} onChange={e => handleStateChange('musicShadowBlur', parseInt(e.target.value) as any)} className="w-full"/></div>
+                        </div>
+                    )}
+                 </div>
+
+                 {/* Layout */}
+                 <div className="p-4 border border-base-300 rounded-lg bg-base-300/30 space-y-3">
+                     <h3 className="text-lg font-bold text-gray-200">{T('photoStyleCreator.thumbnailMusic.layoutSettings')}</h3>
+                     <div>
+                        <label className="block text-sm text-gray-400 mb-1">{T('photoStyleCreator.thumbnailMusic.titlePosition')}</label>
+                        <div className="grid grid-cols-3 gap-2">
+                            <button onClick={() => handleStateChange('musicTitleAlign', 'left' as any)} className={`py-1 rounded ${formState.musicTitleAlign === 'left' ? 'bg-brand-primary' : 'bg-base-200'}`}>{T('photoStyleCreator.thumbnailMusic.alignLeft')}</button>
+                            <button onClick={() => handleStateChange('musicTitleAlign', 'center' as any)} className={`py-1 rounded ${formState.musicTitleAlign === 'center' ? 'bg-brand-primary' : 'bg-base-200'}`}>{T('photoStyleCreator.thumbnailMusic.alignCenter')}</button>
+                            <button onClick={() => handleStateChange('musicTitleAlign', 'right' as any)} className={`py-1 rounded ${formState.musicTitleAlign === 'right' ? 'bg-brand-primary' : 'bg-base-200'}`}>{T('photoStyleCreator.thumbnailMusic.alignRight')}</button>
+                        </div>
+                     </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">{T('photoStyleCreator.thumbnailMusic.songColumns')}</label>
+                        <div className="grid grid-cols-3 gap-2">
+                            <button onClick={() => handleStateChange('musicColumnCount', 1 as any)} className={`py-1 rounded ${formState.musicColumnCount === 1 ? 'bg-brand-primary' : 'bg-base-200'}`}>{T('photoStyleCreator.thumbnailMusic.oneColumn')}</button>
+                            <button onClick={() => handleStateChange('musicColumnCount', 2 as any)} className={`py-1 rounded ${formState.musicColumnCount === 2 ? 'bg-brand-primary' : 'bg-base-200'}`}>{T('photoStyleCreator.thumbnailMusic.twoColumns')}</button>
+                            <button onClick={() => handleStateChange('musicColumnCount', 4 as any)} className={`py-1 rounded ${formState.musicColumnCount === 4 ? 'bg-brand-primary' : 'bg-base-200'}`}>{T('photoStyleCreator.thumbnailMusic.fourColumns')}</button>
+                        </div>
+                     </div>
+                      <div>
+                        <label className="text-sm text-gray-400">{T('photoStyleCreator.thumbnailMusic.canvasBgColor')}</label>
+                        <input type="color" value={formState.musicCanvasBgColor} onChange={e => handleStateChange('musicCanvasBgColor', e.target.value as any)} className="w-full h-8"/>
+                     </div>
+                 </div>
+            </>
+        );
+    };
+
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 bg-base-100 z-50 flex flex-col font-sans" role="dialog" aria-modal="true">
-            <header className="flex-shrink-0 bg-base-200/80 backdrop-blur-sm border-b border-base-300 w-full sticky top-0 z-10">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-20">
-                    <div className="flex items-center gap-3">
-                        <PhotoIcon className="h-6 w-6 text-teal-400"/>
-                        <div>
-                            <h2 className="text-xl font-bold text-teal-400">{String(t('photoStyleCreator.title'))}</h2>
-                            <p className="text-sm text-gray-400">{String(t('photoStyleCreator.description'))}</p>
+            <header className="flex-shrink-0 bg-base-200/80 backdrop-blur-sm border-b border-base-300 w-full z-10 p-4 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <PhotoIcon className="h-6 w-6 text-teal-400" />
+                    <div>
+                        <h2 className="text-xl font-bold text-teal-400">{t('photoStyleCreator.title') as string}</h2>
+                        <p className="text-sm text-gray-400">{t('photoStyleCreator.description') as string}</p>
+                    </div>
+                </div>
+                <button onClick={onClose} className="text-gray-400 hover:text-white"><XCircleIcon className="h-6 w-6" /></button>
+            </header>
+
+            <main className="flex-grow grid grid-cols-12 overflow-hidden">
+                {/* Controls Sidebar */}
+                <aside className="col-span-12 md:col-span-4 lg:col-span-3 bg-base-200/50 p-5 border-r border-base-300 overflow-y-auto space-y-6">
+                    <div>
+                        <label className="block text-base font-semibold text-gray-200 mb-2">{t('photoStyleCreator.photoType') as string}</label>
+                        <div className="flex flex-wrap gap-2">
+                            {(['artist_model', 'product', 'thumbnail'] as PhotoType[]).map(type => (
+                                <button key={type} onClick={() => handleStateChange('photoType', type)} className={`px-3 py-2 text-sm rounded-md flex-1 transition-colors ${formState.photoType === type ? 'bg-brand-primary text-white font-semibold' : 'bg-base-300 hover:bg-base-200'}`}>
+                                    {t(`photoStyleCreator.types.${type}`) as string}
+                                </button>
+                            ))}
                         </div>
                     </div>
-                    <button onClick={onClose} className="px-6 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-200 bg-base-300 hover:bg-gray-700">
-                        {String(t('closeButton'))}
-                    </button>
-                </div>
-            </header>
-            <main className="flex-grow overflow-y-auto">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    {/* Controls */}
-                    <aside className="lg:col-span-4 lg:sticky lg:top-28 bg-base-200/50 p-6 rounded-lg border border-base-300 space-y-6 max-h-[calc(100vh-8rem)] overflow-y-auto">
-                        <fieldset className="space-y-4">
-                            <legend className="text-base font-semibold text-gray-200 mb-2">{String(t('photoStyleCreator.photoType'))}</legend>
-                           <RadioGroup 
-                                value={formState.photoType}
-                                onChange={(v) => handleStateChange('photoType', v as PhotoType)}
-                                options={[
-                                    { value: 'artist_model', label: t('photoStyleCreator.types.artist_model') as string },
-                                    { value: 'product', label: t('photoStyleCreator.types.product') as string },
-                                    { value: 'thumbnail', label: t('photoStyleCreator.types.thumbnail') as string },
-                                ]}
-                           />
+
+                    {formState.photoType === 'artist_model' && renderArtistModelControls()}
+                    {formState.photoType === 'product' && renderProductControls()}
+                    
+                    {formState.photoType === 'thumbnail' && (
+                        <>
+                            <div className="flex rounded-md shadow-sm">
+                                <button onClick={() => handleStateChange('thumbnailMode', 'normal' as any)} className={`px-4 py-2 text-sm font-medium border border-gray-600 rounded-l-md flex-1 ${formState.thumbnailMode === 'normal' ? 'bg-brand-primary text-white' : 'bg-base-300 hover:bg-gray-700'}`}>{t('photoStyleCreator.thumbnailMusic.normal') as string}</button>
+                                <button onClick={() => handleStateChange('thumbnailMode', 'music' as any)} className={`px-4 py-2 text-sm font-medium border border-gray-600 rounded-r-md flex-1 ${formState.thumbnailMode === 'music' ? 'bg-brand-primary text-white' : 'bg-base-300 hover:bg-gray-700'}`}>{t('photoStyleCreator.thumbnailMusic.music') as string}</button>
+                            </div>
+                            {formState.thumbnailMode === 'normal' ? renderNormalThumbnailControls() : renderMusicThumbnailControls()}
+                        </>
+                    )}
+
+                    {/* Shared output settings */}
+                    {(formState.photoType !== 'thumbnail' || formState.thumbnailMode === 'normal') && (
+                        <fieldset className="border-t border-base-300 pt-5 space-y-5">
+                            <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{t('photoStyleCreator.groups.output') as string}</legend>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">{t('photoStyleCreator.shared.numberOfImages') as string}</label>
+                                <RadioGroup value={formState.numberOfImages} onChange={val => handleStateChange('numberOfImages', val)} options={[{value: 3, label: '3'}, {value: 6, label: '6'}, {value: 9, label: '9'}]} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">{t('photoStyleCreator.shared.aspectRatio') as string}</label>
+                                <RadioGroup value={formState.aspectRatio} onChange={val => handleStateChange('aspectRatio', val)} options={[{value: '1:1', label: '1:1'}, {value: '9:16', label: '9:16'}, {value: '16:9', label: '16:9'}, {value: '3:4', label: '3:4'}, {value: '4:3', label: '4:3'}]} />
+                            </div>
+                            <button onClick={handleGenerate} disabled={isLoading} className="w-full font-bold py-3 px-4 text-lg rounded-xl shadow-lg bg-brand-primary hover:bg-brand-dark disabled:bg-base-300 disabled:text-gray-500 transition-colors">
+                                {isLoading ? t('photoStyleCreator.generating') as string : t('photoStyleCreator.generate') as string}
+                            </button>
                         </fieldset>
-                        
-                        {formState.photoType === 'artist_model' && renderArtistModelControls()}
-                        {formState.photoType === 'product' && renderProductControls()}
-                        {formState.photoType === 'thumbnail' && renderThumbnailControls()}
-                        
-                        {isGeneratingRecs && <p className="text-xs text-amber-400 animate-pulse">{String(t('photoStyleCreator.generatingRecommendations'))}</p>}
-                        
-                        {(formState.photoType !== 'thumbnail' || formState.thumbnailMode === 'normal') && (
-                            <>
-                                <fieldset className="border-t border-base-300 pt-5 space-y-5">
-                                    <legend className="text-base font-semibold text-gray-200 -translate-y-3 bg-base-200/50 px-2">{String(t('photoStyleCreator.groups.output'))}</legend>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">{String(t('photoStyleCreator.shared.numberOfImages'))}</label>
-                                        <RadioGroup 
-                                            value={formState.numberOfImages} 
-                                            onChange={(v) => handleStateChange('numberOfImages', v)} 
-                                            options={[{value: 3, label: '3'}, {value: 6, label: '6'}, {value: 9, label: '9'}]}
-                                        />
+                    )}
+                </aside>
+
+                {/* Results Display */}
+                <div className="col-span-12 md:col-span-8 lg:col-span-9 bg-black/30 p-5 flex items-center justify-center overflow-y-auto">
+                    {error && <p className="text-red-400 text-center">{error}</p>}
+                    {isLoading && <div className="text-center text-gray-400">{t('photoStyleCreator.generating') as string}</div>}
+                    {!isLoading && !error && generatedImages.length === 0 && formState.thumbnailMode !== 'music' && (
+                        <div className="text-center text-gray-500">
+                            <PhotoIcon className="h-16 w-16 mx-auto mb-4" />
+                            <h3 className="text-xl font-semibold">{t('photoStyleCreator.readyText') as string}</h3>
+                            <p className="max-w-xs mx-auto">{t('photoStyleCreator.readySubtext') as string}</p>
+                        </div>
+                    )}
+                    {generatedImages.length > 0 && formState.thumbnailMode !== 'music' && (
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 w-full h-full">
+                            {generatedImages.map((img, index) => (
+                                <div key={index} className="relative group aspect-square bg-base-300 rounded-lg overflow-hidden">
+                                    <img src={`data:${img.mimeType};base64,${img.base64}`} alt={`Generated image ${index + 1}`} className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <button onClick={() => handleDownload(img)} className="p-2 bg-white/20 text-white rounded-full hover:bg-white/40" title={t('photoStyleCreator.downloadTooltip') as string}><DownloadIcon className="h-6 w-6" /></button>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">{String(t('photoStyleCreator.shared.aspectRatio'))}</label>
-                                        <RadioGroup
-                                            value={formState.aspectRatio}
-                                            onChange={(v) => handleStateChange('aspectRatio', v)}
-                                            options={[
-                                                { value: '1:1', label: '1:1' },
-                                                { value: '9:16', label: '9:16' },
-                                                { value: '16:9', label: '16:9' },
-                                                { value: '3:4', label: '3:4' },
-                                                { value: '4:3', label: '4:3' },
-                                            ]}
-                                        />
-                                    </div>
-                                </fieldset>
-                                
-                                <div className="pt-2">
-                                    <button onClick={handleGenerate} disabled={isLoading} className="w-full py-3.5 text-lg bg-brand-primary hover:bg-brand-dark text-white font-bold rounded-lg disabled:opacity-50">{isLoading ? String(t('photoStyleCreator.generating')) : String(t('photoStyleCreator.generate'))}</button>
                                 </div>
-                            </>
-                        )}
-                    </aside>
-                    {/* Main Content Area */}
-                    <div className="lg:col-span-8 bg-base-200/50 p-4 rounded-lg border border-base-300 flex items-center justify-center min-h-[calc(100vh-12rem)]">
-                       {formState.photoType === 'thumbnail' && formState.thumbnailMode === 'music' ? (
-                            <div className="w-full space-y-4">
-                                <div className="relative aspect-video">
-                                    <canvas ref={canvasRef} width="800" height="450" className="w-full h-auto rounded-md shadow-lg" />
-                                    {isMusicLoading && (
-                                        <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center rounded-md">
-                                            <div className="w-8 h-8 border-4 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                                            <p className="text-white text-lg mt-4">{loadingMessage}</p>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex gap-4">
-                                    <button onClick={handleDownloadHD} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow">{t('photoStyleCreator.thumbnailMusic.downloadHD') as string}</button>
-                                    <button onClick={handleClearMusicForm} className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg shadow">{t('photoStyleCreator.thumbnailMusic.clear') as string}</button>
-                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {formState.photoType === 'thumbnail' && formState.thumbnailMode === 'music' && (
+                        <div className="w-full max-w-4xl space-y-4">
+                            <div className="relative aspect-video bg-base-200 rounded-lg shadow-lg">
+                               <canvas ref={canvasRef} width={800} height={450} className="w-full h-full object-contain"></canvas>
+                               {isMusicLoading && <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-white">{loadingMessage}...</div>}
                             </div>
-                       ) : isLoading ? (
-                            <div className="text-center">
-                                <svg className="animate-spin mx-auto h-12 w-12 text-brand-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                <p className="mt-4 text-gray-300">{String(t('photoStyleCreator.generating'))}</p>
+                             <div className="flex gap-4">
+                               <button onClick={handleDownloadHD} className='w-full bg-indigo-600 hover:bg-indigo-700 font-bold py-2 px-4 rounded-md text-white'>{t('photoStyleCreator.thumbnailMusic.downloadHD') as string}</button>
+                               <button onClick={handleClearMusicForm} className='w-full bg-red-600 hover:bg-red-700 font-bold py-2 px-4 rounded-md text-white'>{t('photoStyleCreator.thumbnailMusic.clear') as string}</button>
                             </div>
-                        ) : error ? (
-                             <div className="text-center text-red-400 p-4 bg-red-900/20 rounded-lg">{error}</div>
-                        ) : generatedImages.length > 0 ? (
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full">
-                                {generatedImages.map((img, index) => (
-                                    <div key={index} className="relative group aspect-auto bg-base-300 rounded-md overflow-hidden">
-                                        <img src={`data:${img.mimeType};base64,${img.base64}`} alt={`Generated image ${index + 1}`} className="w-full h-full object-cover" />
-                                        <button 
-                                            onClick={() => handleDownload(img)}
-                                            className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-brand-primary"
-                                            title={t('photoStyleCreator.downloadTooltip') as string}
-                                            aria-label="Download image"
-                                        >
-                                            <DownloadIcon className="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center text-gray-500">
-                                <div className="text-indigo-400 text-5xl opacity-50 mb-4">✨</div>
-                                <h3 className="text-xl font-semibold text-gray-300">{String(t('photoStyleCreator.readyText'))}</h3>
-                                <p className="text-sm">{String(t('photoStyleCreator.readySubtext'))}</p>
-                            </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </main>
         </div>

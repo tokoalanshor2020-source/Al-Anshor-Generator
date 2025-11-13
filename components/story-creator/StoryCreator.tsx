@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Sidebar } from './Sidebar';
 import { MainContent } from './MainContent';
@@ -38,7 +39,8 @@ interface StoryCreatorProps {
     setIsSpeechModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
     isPhotoStyleModalOpen: boolean;
     setIsPhotoStyleModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
-    setHasSelectedKey: (hasKey: boolean) => void;
+    apiKey: string | null;
+    onApiKeyError: () => void;
 }
 
 export const StoryCreator: React.FC<StoryCreatorProps> = (props) => {
@@ -49,7 +51,7 @@ export const StoryCreator: React.FC<StoryCreatorProps> = (props) => {
         logline, setLogline, scenario, setScenario, sceneCount, setSceneCount,
         directingSettings, setDirectingSettings, onNewStory, publishingKit, setPublishingKit,
         activeTab, setActiveTab, referenceIdeaState, setReferenceIdeaState,
-        isReferenceIdeaModalOpen, setIsReferenceIdeaModalOpen, setHasSelectedKey
+        isReferenceIdeaModalOpen, setIsReferenceIdeaModalOpen, apiKey, onApiKeyError
     } = props;
 
     const [isGenerating, setIsGenerating] = useState(false);
@@ -87,17 +89,21 @@ export const StoryCreator: React.FC<StoryCreatorProps> = (props) => {
         console.error("API Error:", e);
         const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
         
-        let displayError = errorMessage;
-        if (errorMessage.includes("Requested entity was not found.")) {
-            setHasSelectedKey(false);
-            displayError = t('errorApiKeyNotFound') as string;
+        if (errorMessage.includes("API key not valid") || errorMessage.includes("API_KEY_INVALID")) {
+            onApiKeyError();
+            setError(t('errorApiKeyNotFound') as string);
         } else if (errorMessage === 'errorRateLimit') {
-            displayError = t('errorRateLimit') as string;
+            setError(t('errorRateLimit') as string);
+        } else {
+            setError(errorMessage);
         }
-        setError(displayError);
-  }, [t, setHasSelectedKey]);
+  }, [t, onApiKeyError]);
 
     const handleGenerateStoryboard = useCallback(async () => {
+        if (!apiKey) {
+            onApiKeyError();
+            return;
+        }
         if (!logline.trim() || !scenario.trim()) {
             alert(t('alertEnterPrompt'));
             return;
@@ -115,7 +121,7 @@ export const StoryCreator: React.FC<StoryCreatorProps> = (props) => {
                 sceneCount,
                 characters,
                 directingSettings,
-            });
+            }, apiKey);
             setStoryboard(scenes);
             setActiveTab('storyboard'); 
         } catch (e) {
@@ -124,13 +130,17 @@ export const StoryCreator: React.FC<StoryCreatorProps> = (props) => {
         } finally {
             setIsGenerating(false);
         }
-    }, [logline, scenario, sceneCount, characters, directingSettings, t, setStoryboard, setPublishingKit, setActiveTab, handleApiError]);
+    }, [apiKey, onApiKeyError, logline, scenario, sceneCount, characters, directingSettings, t, setStoryboard, setPublishingKit, setActiveTab, handleApiError]);
 
     const handleGeneratePublishingKit = useCallback(async () => {
+        if (!apiKey) {
+            onApiKeyError();
+            return;
+        }
         setIsGeneratingKit(true);
         setError(null);
         try {
-            const kit = await generatePublishingKit({ storyboard, characters, logline });
+            const kit = await generatePublishingKit({ storyboard, characters, logline }, apiKey);
             setPublishingKit(kit);
             setActiveTab('publishingKit');
         } catch (e) {
@@ -140,7 +150,7 @@ export const StoryCreator: React.FC<StoryCreatorProps> = (props) => {
             setIsGeneratingKit(false);
         }
 
-    }, [storyboard, characters, logline, setPublishingKit, setActiveTab, handleApiError]);
+    }, [apiKey, onApiKeyError, storyboard, characters, logline, setPublishingKit, setActiveTab, handleApiError]);
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
@@ -152,6 +162,8 @@ export const StoryCreator: React.FC<StoryCreatorProps> = (props) => {
                     storyboard={storyboard}
                     onGeneratePublishingKit={handleGeneratePublishingKit}
                     isGeneratingKit={isGeneratingKit}
+                    apiKey={apiKey}
+                    onApiKeyError={onApiKeyError}
                 />
             </aside>
             <main className="md:col-span-8 lg:col-span-9 bg-base-200/50 rounded-xl border border-base-300">
@@ -179,6 +191,8 @@ export const StoryCreator: React.FC<StoryCreatorProps> = (props) => {
                     setReferenceIdeaState={setReferenceIdeaState}
                     isReferenceIdeaModalOpen={isReferenceIdeaModalOpen}
                     setIsReferenceIdeaModalOpen={setIsReferenceIdeaModalOpen}
+                    apiKey={apiKey}
+                    onApiKeyError={onApiKeyError}
                 />
             </main>
             {isConfirmOpen && (

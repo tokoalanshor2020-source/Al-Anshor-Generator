@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useId, useRef } from 'react';
 import { useLocalization, languageMap } from '../../i18n';
 import type { SpeechMode, DialogEntry, SpeakerConfig } from '../../types';
@@ -11,7 +12,8 @@ import { SpeakerWaveIcon } from '../icons/SpeakerWaveIcon';
 interface SpeechGeneratorModalProps {
     isOpen: boolean;
     onClose: () => void;
-    setHasSelectedKey: (hasKey: boolean) => void;
+    apiKey: string | null;
+    onApiKeyError: () => void;
 }
 
 const generateUUID = () => window.crypto.randomUUID();
@@ -68,7 +70,7 @@ const createWavBlob = (pcmData: Uint8Array, sampleRate: number, numChannels: num
 };
 
 
-export const SpeechGeneratorModal: React.FC<SpeechGeneratorModalProps> = ({ isOpen, onClose, setHasSelectedKey }) => {
+export const SpeechGeneratorModal: React.FC<SpeechGeneratorModalProps> = ({ isOpen, onClose, apiKey, onApiKeyError }) => {
     const { t, language } = useLocalization();
     const speakerColors = ['#f59e0b', '#8b5cf6', '#10b981', '#3b82f6', '#ec4899'];
     const availableVoices = t('speechGenerator.voices') as Record<string, string>;
@@ -106,7 +108,6 @@ export const SpeechGeneratorModal: React.FC<SpeechGeneratorModalProps> = ({ isOp
         setPreviewingVoice(null);
         setStyleSuggestions([]);
         setIsGeneratingSuggestions(false);
-        // Use a functional update to avoid a dependency on `audioUrl`, fixing the reset loop.
         setAudioUrl(currentUrl => {
             if (currentUrl) {
                 URL.revokeObjectURL(currentUrl);
@@ -127,7 +128,7 @@ export const SpeechGeneratorModal: React.FC<SpeechGeneratorModalProps> = ({ isOp
     useEffect(() => {
         const scriptText = dialogs.map(d => d.text).filter(Boolean).join('\n');
     
-        if (scriptText.trim().length < 20) { // Don't generate for very short text
+        if (scriptText.trim().length < 20 || !apiKey) { 
             setStyleSuggestions([]);
             return;
         }
@@ -135,21 +136,24 @@ export const SpeechGeneratorModal: React.FC<SpeechGeneratorModalProps> = ({ isOp
         const handler = setTimeout(async () => {
             setIsGeneratingSuggestions(true);
             try {
-                const suggestions = await generateStyleSuggestions(scriptText, languageMap[language]);
+                const suggestions = await generateStyleSuggestions(scriptText, languageMap[language], apiKey);
                 setStyleSuggestions(suggestions);
             } catch (e) {
                 console.error("Failed to get style suggestions:", e);
-                // Fail silently
+                const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred';
+                 if (errorMessage.includes("API key not valid") || errorMessage.includes("API_KEY_INVALID")) {
+                    onApiKeyError();
+                }
                 setStyleSuggestions([]);
             } finally {
                 setIsGeneratingSuggestions(false);
             }
-        }, 1500); // 1.5 second debounce
+        }, 1500);
     
         return () => {
             clearTimeout(handler);
         };
-    }, [dialogs, language]);
+    }, [dialogs, language, apiKey, onApiKeyError]);
 
     const handleModeChange = (newMode: SpeechMode) => {
         setMode(newMode);
@@ -184,6 +188,10 @@ export const SpeechGeneratorModal: React.FC<SpeechGeneratorModalProps> = ({ isOp
     };
 
     const handleRun = async () => {
+        if (!apiKey) {
+            onApiKeyError();
+            return;
+        }
         setIsLoading(true);
         setError(null);
         if (audioUrl) URL.revokeObjectURL(audioUrl);
@@ -222,15 +230,15 @@ export const SpeechGeneratorModal: React.FC<SpeechGeneratorModalProps> = ({ isOp
                 };
             }
             
-            const audioBase64 = await generateSpeech(prompt, speechConfig);
+            const audioBase64 = await generateSpeech(prompt, speechConfig, apiKey);
             const audioBytes = decode(audioBase64);
             const wavBlob = createWavBlob(audioBytes, 24000, 1, 16); // 24kHz sample rate, 1 channel, 16 bits per sample
             setAudioUrl(URL.createObjectURL(wavBlob));
 
         } catch (e) {
             const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-            if (errorMessage.includes("Requested entity was not found.")) {
-                setHasSelectedKey(false);
+            if (errorMessage.includes("API key not valid") || errorMessage.includes("API_KEY_INVALID")) {
+                onApiKeyError();
                 setError(t('errorApiKeyNotFound') as string);
             } else {
                 setError(errorMessage);
@@ -241,7 +249,10 @@ export const SpeechGeneratorModal: React.FC<SpeechGeneratorModalProps> = ({ isOp
     };
     
     const handlePreviewVoice = async (voiceName: string) => {
-        if (previewingVoice) return; // Prevent multiple previews at once
+        if (previewingVoice || !apiKey) {
+            if (!apiKey) onApiKeyError();
+            return;
+        }
 
         setPreviewingVoice(voiceName);
         setError(null);
@@ -250,7 +261,7 @@ export const SpeechGeneratorModal: React.FC<SpeechGeneratorModalProps> = ({ isOp
             const speechConfig = {
                 voiceConfig: { prebuiltVoiceConfig: { voiceName } },
             };
-            const audioBase64 = await generateSpeech(sampleText, speechConfig);
+            const audioBase64 = await generateSpeech(sampleText, speechConfig, apiKey);
             const audioBytes = decode(audioBase64);
             const wavBlob = createWavBlob(audioBytes, 24000, 1, 16);
             const url = URL.createObjectURL(wavBlob);
@@ -264,8 +275,8 @@ export const SpeechGeneratorModal: React.FC<SpeechGeneratorModalProps> = ({ isOp
             }
         } catch (e) {
             const errorMessage = e instanceof Error ? e.message : 'Failed to generate preview.';
-             if (errorMessage.includes("Requested entity was not found.")) {
-                setHasSelectedKey(false);
+             if (errorMessage.includes("API key not valid") || errorMessage.includes("API_KEY_INVALID")) {
+                onApiKeyError();
                 setError(t('errorApiKeyNotFound') as string);
             } else {
                 setError(errorMessage);

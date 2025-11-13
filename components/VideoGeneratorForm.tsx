@@ -1,3 +1,4 @@
+
 // FIX: Implemented the full VideoGeneratorForm component to resolve module not found and other related errors.
 import React, { useState, useEffect, DragEvent } from 'react';
 import type { GeneratorOptions, ImageFile, Character, VideoGeneratorState, VideoGeneratorOrigin } from '../types';
@@ -13,7 +14,8 @@ interface VideoGeneratorFormProps {
   onStateChange: React.Dispatch<React.SetStateAction<VideoGeneratorState>>;
   characters: Character[];
   videoGeneratorOrigin: VideoGeneratorOrigin | null;
-  setHasSelectedKey: (hasKey: boolean) => void;
+  apiKey: string | null;
+  onApiKeyError: () => void;
 }
 
 const MAX_IMAGE_SIZE_MB = 10;
@@ -25,7 +27,8 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
   generatorState,
   onStateChange,
   videoGeneratorOrigin,
-  setHasSelectedKey,
+  apiKey,
+  onApiKeyError,
 }) => {
   const { t } = useLocalization();
   const { prompt, imageFile, aspectRatio, enableSound, resolution } = generatorState;
@@ -132,6 +135,10 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
   };
 
   const handleGenerateReferenceImage = async () => {
+    if (!apiKey) {
+      onApiKeyError();
+      return;
+    }
     if (!prompt.video.trim()) {
       alert(t('alertEnterPrompt') as string);
       return;
@@ -140,16 +147,17 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
     if(generatedRefImg) URL.revokeObjectURL(generatedRefImg.previewUrl);
     setGeneratedRefImg(null);
     try {
-        const result = await generateReferenceImage(prompt.video, refImgAspectRatio);
+        const result = await generateReferenceImage(prompt.video, refImgAspectRatio, apiKey);
         const previewUrl = `data:${result.mimeType};base64,${result.base64}`;
         setGeneratedRefImg({ ...result, previewUrl });
     } catch(e) {
         console.error("Reference image generation failed:", e);
         const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred';
-        if (errorMessage.includes("Requested entity was not found.")) {
-            setHasSelectedKey(false);
+        if (errorMessage.includes("API key not valid") || errorMessage.includes("API_KEY_INVALID")) {
+            onApiKeyError();
+        } else {
+            alert(errorMessage);
         }
-        alert(errorMessage);
     } finally {
         setIsGeneratingRefImg(false);
     }

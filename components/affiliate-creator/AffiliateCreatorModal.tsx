@@ -1,3 +1,4 @@
+
 // FIX: Implemented the full AffiliateCreatorModal component to resolve module not found and other related errors.
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useLocalization } from '../../i18n';
@@ -19,11 +20,11 @@ import { CheckIcon } from '../icons/CheckIcon';
 interface AffiliateCreatorModalProps {
     isOpen: boolean;
     onClose: () => void;
-    // FIX: Update the `onProceedToVideo` prop to accept the `affiliateImageId` payload.
     onProceedToVideo: (prompt: string, data?: { base64: string; mimeType: string } | { affiliateImageId: string }, origin?: VideoGeneratorOrigin) => void;
     affiliateCreatorState: AffiliateCreatorState;
     setAffiliateCreatorState: React.Dispatch<React.SetStateAction<AffiliateCreatorState>>;
-    setHasSelectedKey: (hasKey: boolean) => void;
+    apiKey: string | null;
+    onApiKeyError: () => void;
 }
 
 const generateUUID = () => {
@@ -69,12 +70,13 @@ export const AffiliateCreatorModal: React.FC<AffiliateCreatorModalProps> = ({
     onProceedToVideo,
     affiliateCreatorState,
     setAffiliateCreatorState,
-    setHasSelectedKey,
+    apiKey,
+    onApiKeyError,
 }) => {
     const { t } = useLocalization();
     const [isGenerating, setIsGenerating] = useState(false);
     const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<React.ReactNode | null>(null);
     
     const [localProductReferenceFiles, setLocalProductReferenceFiles] = useState<ReferenceFile[]>([]);
     const [currentProductFileIndex, setCurrentProductFileIndex] = useState(0);
@@ -85,6 +87,29 @@ export const AffiliateCreatorModal: React.FC<AffiliateCreatorModalProps> = ({
     
     const { generatedImages, numberOfImages, model, vibe, customVibe, productDescription, aspectRatio, narratorLanguage, customNarratorLanguage, speechStyle, customSpeechStyle } = affiliateCreatorState;
     
+    const handleApiError = useCallback((e: unknown) => {
+        console.error("API Error in Affiliate Creator:", e);
+        const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+        
+        if (errorMessage.includes("API key not valid") || errorMessage.includes("API_KEY_INVALID")) {
+            onApiKeyError();
+            setError(t('errorApiKeyNotFound') as string);
+        } else if (errorMessage === 'errorModelOverloaded') {
+            setError(t('errorModelOverloaded') as string);
+        } else if (errorMessage === 'errorBillingRequired') {
+            setError(
+                <>
+                    {t('apiKeySelection.billingInfo') as string}{' '}
+                    <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="underline font-bold">
+                        Learn more.
+                    </a>
+                </>
+            );
+        } else {
+            setError(errorMessage);
+        }
+    }, [t, onApiKeyError]);
+
     useEffect(() => {
         if (isOpen) {
             document.body.classList.add('modal-open');
@@ -250,16 +275,20 @@ export const AffiliateCreatorModal: React.FC<AffiliateCreatorModalProps> = ({
     const goToNextActorFile = () => setCurrentActorFileIndex(prev => (prev === localActorReferenceFiles.length - 1 ? 0 : prev + 1));
 
     const handleGenerate = async () => {
+        if (!apiKey) {
+            onApiKeyError();
+            return;
+        }
         if (affiliateCreatorState.productReferenceFiles.length === 0) return;
         setIsGenerating(true);
         setError(null);
         setAffiliateCreatorState(prev => ({ ...prev, generatedImages: [] }));
         
         try {
-            const prompts = await generateAffiliateImagePrompts(affiliateCreatorState);
+            const prompts = await generateAffiliateImagePrompts(affiliateCreatorState, apiKey);
             
             const referenceFiles = [...affiliateCreatorState.productReferenceFiles, ...affiliateCreatorState.actorReferenceFiles];
-            const imagePromises = prompts.map(p => generateAffiliateImages(p, affiliateCreatorState.aspectRatio, referenceFiles));
+            const imagePromises = prompts.map(p => generateAffiliateImages(p, affiliateCreatorState.aspectRatio, referenceFiles, apiKey));
             
             const results = await Promise.all(imagePromises);
 
@@ -271,17 +300,17 @@ export const AffiliateCreatorModal: React.FC<AffiliateCreatorModalProps> = ({
             setAffiliateCreatorState(prev => ({...prev, generatedImages: newImages}));
 
         } catch (e) {
-            const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred';
-            if (errorMessage.includes("Requested entity was not found.")) {
-                setHasSelectedKey(false);
-            }
-            setError(errorMessage);
+            handleApiError(e);
         } finally {
             setIsGenerating(false);
         }
     };
     
     const handleGenerateVideoPrompt = async (id: string, promptType: VideoPromptType, index: number) => {
+        if (!apiKey) {
+            onApiKeyError();
+            return;
+        }
         const targetImage = affiliateCreatorState.generatedImages.find(img => img.id === id);
         if (!targetImage) return;
     
@@ -335,7 +364,7 @@ export const AffiliateCreatorModal: React.FC<AffiliateCreatorModalProps> = ({
                 customSpeechStyle: affiliateCreatorState.customSpeechStyle,
             };
     
-            const promptJson = await generateAffiliateVideoPrompt(targetImage, settings, promptType, isSingleImage, previousNarration);
+            const promptJson = await generateAffiliateVideoPrompt(targetImage, settings, promptType, isSingleImage, previousNarration, apiKey);
             
             const updatedImage: GeneratedAffiliateImage = { ...targetImage, videoPrompt: promptJson };
     
@@ -345,11 +374,7 @@ export const AffiliateCreatorModal: React.FC<AffiliateCreatorModalProps> = ({
             }));
             
         } catch (e) {
-            const errorMessage = e instanceof Error ? e.message : `Failed to generate video prompt`;
-            if (errorMessage.includes("Requested entity was not found.")) {
-                setHasSelectedKey(false);
-            }
-            setError(errorMessage);
+            handleApiError(e);
         } finally {
             setGeneratingStates(prev => {
                 const newStates = { ...prev };
@@ -360,11 +385,16 @@ export const AffiliateCreatorModal: React.FC<AffiliateCreatorModalProps> = ({
     };
 
     const handleAction = async (id: string, action: 'regenerate' | 'upload') => {
+        if (!apiKey) {
+            onApiKeyError();
+            return;
+        }
         const targetImage = generatedImages.find(img => img.id === id);
         if (!targetImage) return;
 
         const stateValue = action === 'regenerate' ? 'regenerating' : 'uploading';
         setGeneratingStates(prev => ({ ...prev, [id]: stateValue }));
+        setError(null);
 
         const referenceFiles = [...affiliateCreatorState.productReferenceFiles, ...affiliateCreatorState.actorReferenceFiles];
         try {
@@ -389,7 +419,7 @@ export const AffiliateCreatorModal: React.FC<AffiliateCreatorModalProps> = ({
                 };
                 input.click();
             } else { // regenerate
-                const newImageResult = await generateAffiliateImages(targetImage.prompt, affiliateCreatorState.aspectRatio, referenceFiles);
+                const newImageResult = await generateAffiliateImages(targetImage.prompt, affiliateCreatorState.aspectRatio, referenceFiles, apiKey);
                 const updatedImage: GeneratedAffiliateImage = { ...newImageResult, id: targetImage.id, videoPrompt: targetImage.videoPrompt }; // Keep existing video prompt
 
                 setAffiliateCreatorState(prev => ({
@@ -398,11 +428,7 @@ export const AffiliateCreatorModal: React.FC<AffiliateCreatorModalProps> = ({
                 }));
             }
         } catch (e) {
-            const errorMessage = e instanceof Error ? e.message : `Failed to ${action}`;
-            if (errorMessage.includes("Requested entity was not found.")) {
-                setHasSelectedKey(false);
-            }
-            setError(errorMessage);
+            handleApiError(e);
         } finally {
             setGeneratingStates(prev => {
                 const newStates = { ...prev };
@@ -413,20 +439,21 @@ export const AffiliateCreatorModal: React.FC<AffiliateCreatorModalProps> = ({
     };
 
     const handleGenerateDescription = async () => {
+        if (!apiKey) {
+            onApiKeyError();
+            return;
+        }
         if (localProductReferenceFiles.length === 0 && localActorReferenceFiles.length === 0) return;
         setIsGeneratingDescription(true);
+        setError(null);
         try {
             const description = await generateAffiliateDescription({ 
                 productFiles: localProductReferenceFiles.map(f => ({ base64: f.base64, mimeType: f.mimeType })),
                 actorFiles: localActorReferenceFiles.map(f => ({ base64: f.base64, mimeType: f.mimeType }))
-            });
+            }, apiKey);
             setAffiliateCreatorState(p => ({ ...p, productDescription: description }));
         } catch(e) {
-            const errorMessage = e instanceof Error ? e.message : 'Failed to generate description';
-            if (errorMessage.includes("Requested entity was not found.")) {
-                setHasSelectedKey(false);
-            }
-            setError(errorMessage);
+            handleApiError(e);
         } finally {
             setIsGeneratingDescription(false);
         }

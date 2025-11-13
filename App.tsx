@@ -13,6 +13,8 @@ import { AffiliateCreatorModal } from './components/affiliate-creator/AffiliateC
 import { SpeechGeneratorModal } from './components/speech-generator/SpeechGeneratorModal';
 import { PhotoStyleCreatorModal } from './components/photo-style-creator/PhotoStyleCreatorModal';
 import { KeyIcon } from './components/icons/KeyIcon';
+import { validateApiKey } from './services/apiKeyService';
+import { VideoOverlayEditor } from './components/video-overlay-editor/VideoOverlayEditor';
 
 
 const CHARACTERS_STORAGE_KEY = 'gemini-story-characters';
@@ -21,11 +23,11 @@ const VIDEO_GENERATOR_SESSION_KEY = 'gemini-video-generator-session';
 const APP_VIEW_STORAGE_KEY = 'gemini-app-view';
 const REFERENCE_IDEA_SESSION_KEY = 'gemini-reference-idea-session';
 const AFFILIATE_CREATOR_SESSION_KEY = 'gemini-affiliate-creator-session';
+const API_KEY_STORAGE_KEY = 'gemini-generator-api-key';
 
 
 type AppView = 'story-creator' | 'video-generator';
 
-// FIX: Initialize all properties for the `DirectingSettings` type to resolve TypeScript error.
 const initialDirectingSettings: DirectingSettings = {
     sceneStyleSet: 'standard_cinematic',
     customSceneStyle: '',
@@ -62,31 +64,65 @@ const initialAffiliateCreatorState: AffiliateCreatorState = {
 export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<React.ReactNode | null>(null);
   
   const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
-  const [hasSelectedKey, setHasSelectedKey] = useState<boolean>(true); // Start optimistically
+  
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [isApiKeyPromptOpen, setIsApiKeyPromptOpen] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  // State for the API Key prompt modal
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [isVerifyingKey, setIsVerifyingKey] = useState(false);
+  const [keyError, setKeyError] = useState('');
+
 
   const { t, language, dir } = useLocalization();
 
-  useEffect(() => {
-    // Check for API key on initial load
-    const checkApiKey = async () => {
-        try {
-            if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
-                const hasKey = await window.aistudio.hasSelectedApiKey();
-                setHasSelectedKey(hasKey);
+    useEffect(() => {
+        const checkStoredApiKey = async () => {
+            const storedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+            if (storedKey) {
+                const isValid = await validateApiKey(storedKey);
+                if (isValid) {
+                    setApiKey(storedKey);
+                } else {
+                    localStorage.removeItem(API_KEY_STORAGE_KEY);
+                    setIsApiKeyPromptOpen(true);
+                }
             } else {
-                // If the aistudio context is not available, assume a key is provided via environment variables.
-                setHasSelectedKey(true);
+                setIsApiKeyPromptOpen(true);
             }
-        } catch (e) {
-            console.error("Error checking for API key:", e);
-            setHasSelectedKey(false);
+            setIsInitialLoading(false);
+        };
+        checkStoredApiKey();
+    }, []);
+
+    const handleApiKeySubmit = async () => {
+        if (!apiKeyInput.trim()) {
+            setKeyError('API Key cannot be empty.');
+            return;
         }
+        setIsVerifyingKey(true);
+        setKeyError('');
+        const isValid = await validateApiKey(apiKeyInput);
+        if (isValid) {
+            localStorage.setItem(API_KEY_STORAGE_KEY, apiKeyInput);
+            setApiKey(apiKeyInput);
+            setIsApiKeyPromptOpen(false);
+            setError(null); // Clear previous API key errors from main view
+        } else {
+            setKeyError('Invalid API key. Please check the key and try again.');
+        }
+        setIsVerifyingKey(false);
     };
-    checkApiKey();
-  }, []);
+
+    const handleApiKeyError = useCallback(() => {
+        setApiKey(null);
+        localStorage.removeItem(API_KEY_STORAGE_KEY);
+        setIsApiKeyPromptOpen(true);
+    }, []);
 
   const [view, setView] = useState<AppView>(() => {
     try {
@@ -103,7 +139,6 @@ export default function App() {
 
   const [videoGeneratorOrigin, setVideoGeneratorOrigin] = useState<VideoGeneratorOrigin | null>(null);
   
-  // State for video generator form, persisted to localStorage
   const [videoGeneratorState, setVideoGeneratorState] = useState<VideoGeneratorState>(() => {
     try {
         const storedSession = localStorage.getItem(VIDEO_GENERATOR_SESSION_KEY);
@@ -123,7 +158,6 @@ export default function App() {
     };
   });
   
-    // State for reference idea modal, persisted to localStorage
   const [referenceIdeaState, setReferenceIdeaState] = useState<ReferenceIdeaState>(() => {
     try {
         const storedSession = localStorage.getItem(REFERENCE_IDEA_SESSION_KEY);
@@ -140,17 +174,12 @@ export default function App() {
     };
   });
 
-  // State for Affiliate Creator modal, persisted to localStorage
   const [affiliateCreatorState, setAffiliateCreatorState] = useState<AffiliateCreatorState>(() => {
     try {
         const storedSession = localStorage.getItem(AFFILIATE_CREATOR_SESSION_KEY);
         if (storedSession) {
             const parsed = JSON.parse(storedSession);
-            // Check if parsed data is a valid object to prevent crashes on null/invalid stored data.
-            // This prevents the state from being wiped if localStorage contains "null" or corrupted data.
             if (typeof parsed === 'object' && parsed !== null) {
-                // Merge stored data with initial state to ensure all keys are present
-                // and handle backward compatibility for `referenceFiles`.
                 return {
                     ...initialAffiliateCreatorState,
                     ...parsed,
@@ -162,11 +191,9 @@ export default function App() {
         console.error("Failed to parse affiliate creator session from localStorage", e);
         localStorage.removeItem(AFFILIATE_CREATOR_SESSION_KEY);
     }
-    // Return a clean default state if nothing is stored or if parsing failed
     return initialAffiliateCreatorState;
   });
   
-  // --- Lifted State from StoryCreator ---
   const [characters, setCharacters] = useState<Character[]>(() => {
     try {
         const storedCharacters = localStorage.getItem(CHARACTERS_STORAGE_KEY);
@@ -202,6 +229,7 @@ export default function App() {
   const [isAffiliateCreatorModalOpen, setIsAffiliateCreatorModalOpen] = useState(false);
   const [isSpeechModalOpen, setIsSpeechModalOpen] = useState(false);
   const [isPhotoStyleModalOpen, setIsPhotoStyleModalOpen] = useState(false);
+  const [isVideoOverlayEditorOpen, setIsVideoOverlayEditorOpen] = useState(false);
 
 
   useEffect(() => {
@@ -210,7 +238,6 @@ export default function App() {
   }, [language, dir]);
 
   useEffect(() => {
-    // Save characters to localStorage whenever they change
     try {
         localStorage.setItem(CHARACTERS_STORAGE_KEY, JSON.stringify(characters));
     } catch(e) {
@@ -246,10 +273,10 @@ export default function App() {
 
   useEffect(() => {
     try {
-        const stateToSave = {
+        const stateToSave: Partial<VideoGeneratorState> = {
             ...videoGeneratorState,
-            imageFile: null // Omit large base64 data
         };
+        delete stateToSave.imageFile;
         localStorage.setItem(VIDEO_GENERATOR_SESSION_KEY, JSON.stringify(stateToSave));
     } catch(e) {
         console.error("Failed to save video generator session to localStorage", e);
@@ -258,10 +285,10 @@ export default function App() {
 
   useEffect(() => {
     try {
-        const stateToSave = {
+        const stateToSave: Partial<ReferenceIdeaState> = {
             ...referenceIdeaState,
-            referenceFiles: [], // Omit large base64 data
         };
+        delete stateToSave.referenceFiles;
         localStorage.setItem(REFERENCE_IDEA_SESSION_KEY, JSON.stringify(stateToSave));
     } catch(e) {
         console.error("Failed to save reference idea session to localStorage", e);
@@ -270,16 +297,19 @@ export default function App() {
 
   useEffect(() => {
     try {
-        // Create a serializable version of the state without large base64 data
-        const stateToSave = {
+        const stateToSave: Partial<AffiliateCreatorState> = {
             ...affiliateCreatorState,
-            productReferenceFiles: [],
-            actorReferenceFiles: [],
-            generatedImages: []
         };
+        delete stateToSave.productReferenceFiles;
+        delete stateToSave.actorReferenceFiles;
+        delete stateToSave.generatedImages;
         localStorage.setItem(AFFILIATE_CREATOR_SESSION_KEY, JSON.stringify(stateToSave));
     } catch(e) {
-        console.error("Failed to save affiliate creator session to localStorage", e);
+        if (e instanceof Error && e.name === 'QuotaExceededError') {
+          console.warn('LocalStorage quota exceeded. Skipping affiliate session save.');
+        } else {
+          console.error("Failed to save affiliate creator session to localStorage", e);
+        }
     }
     }, [affiliateCreatorState]);
   
@@ -287,65 +317,66 @@ export default function App() {
     console.error("API Error:", e);
     const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
     
-    let displayError = errorMessage;
-    if (errorMessage.includes("Requested entity was not found.")) {
-        setHasSelectedKey(false);
-        displayError = t('errorApiKeyNotFound') as string;
-    } else if (errorMessage === 'errorRateLimit') {
-        displayError = t('errorRateLimit') as string;
+    if (errorMessage.includes("API key not valid") || errorMessage.includes("API_KEY_INVALID")) {
+        handleApiKeyError();
+        setError(t('errorApiKeyNotFound') as string);
+    } else if (errorMessage === 'errorModelOverloaded') {
+        setError(t('errorModelOverloaded') as string);
+    } else if (errorMessage === 'errorBillingRequired') {
+        setError(
+            <>
+                {t('apiKeySelection.billingInfo') as string}{' '}
+                <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="underline font-bold">
+                    Learn more.
+                </a>
+            </>
+        );
+    } else {
+        setError(errorMessage);
     }
-    setError(displayError);
-  }, [t]);
+  }, [t, handleApiKeyError]);
 
   const handleGenerateVideo = useCallback(async (options: GeneratorOptions) => {
+    if (!apiKey) {
+        handleApiKeyError();
+        return;
+    }
     setIsLoading(true);
     setError(null);
     setVideoUrl(null);
 
     try {
-      const url = await generateVideo({ options });
+      const url = await generateVideo({ options, apiKey });
       setVideoUrl(url);
     } catch (e) {
       handleApiError(e);
     } finally {
       setIsLoading(false);
     }
-  }, [handleApiError]);
+  }, [apiKey, handleApiError, handleApiKeyError]);
   
   const parseCompositePrompt = (compositePrompt: string): { video: string, audio: string } => {
-    // Attempt to parse as JSON for affiliate/structured prompts
     try {
       const promptObject = JSON.parse(compositePrompt);
-      
-      // Heuristic to detect if this is a structured prompt with audio components
       if (typeof promptObject === 'object' && promptObject !== null && (promptObject.NARRATION_SCRIPT || promptObject.AUDIO_MIXING_GUIDE)) {
         const videoParts: { [key: string]: any } = {};
         let audioString = '';
-
-        // Separate video and audio keys
         for (const key in promptObject) {
           if (key === 'NARRATION_SCRIPT' || key === 'AUDIO_MIXING_GUIDE') {
-            // Append to audio string for display
             audioString += `//** ${key.replace(/_/g, ' ')} **//\n`;
             audioString += JSON.stringify(promptObject[key], null, 2) + '\n\n';
           } else {
             videoParts[key] = promptObject[key];
           }
         }
-        
         const video = JSON.stringify(videoParts, null, 2);
         const audio = audioString.trim();
-
         return { video, audio };
       }
-    } catch (e) {
-      // Not a JSON string or not the expected format, proceed to text-based parsing
-    }
+    } catch (e) {}
 
-    // Fallback for text-based prompts (from Storyboard)
     const blueprintAudioMarker = '//** 7. NARRATION SCRIPT (VOICE OVER) **//';
     const cinematicAudioMarker = '\n\nNARRATION SCRIPT\n';
-
     let video = compositePrompt;
     let audio = '';
 
@@ -360,7 +391,6 @@ export default function App() {
             audio = compositePrompt.substring(splitIndex).trim();
         }
     }
-
     return { video, audio };
   };
 
@@ -426,7 +456,7 @@ export default function App() {
       case 'direct':
       default:
         setView('story-creator');
-        setActiveTab('editor'); // Go to editor for direct, storyboard for storyboard
+        setActiveTab('editor'); 
         if (videoGeneratorOrigin === 'storyboard') setActiveTab('storyboard');
         break;
     }
@@ -475,21 +505,9 @@ export default function App() {
     }
   };
 
-  const handleSelectKey = async () => {
-    try {
-        if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
-            await window.aistudio.openSelectKey();
-            // Optimistically assume success and let the user proceed.
-            // If the key is invalid, the next API call will fail and re-trigger this.
-            setHasSelectedKey(true);
-        } else {
-            alert("API Key selection is not available in this environment.");
-        }
-    } catch (e) {
-        console.error("Failed to open API key selection:", e);
-        setError(e instanceof Error ? e.message : "Could not open API key selection.");
-    }
-  };
+  if (isInitialLoading) {
+    return <div className="fixed inset-0 flex items-center justify-center bg-base-100 text-gray-300">Loading Application...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-base-100 font-sans text-gray-200 flex flex-col">
@@ -497,23 +515,39 @@ export default function App() {
         <TutorialModal onClose={() => setIsTutorialOpen(false)} />
       )}
 
-      {!hasSelectedKey && (
+      {isApiKeyPromptOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4 text-center">
-            <div>
+            <div className="bg-base-200 rounded-2xl shadow-2xl w-full max-w-md border border-base-300 p-6">
                 <h2 className="text-2xl font-bold text-amber-400 mb-4">{t('apiKeySelection.title') as string}</h2>
                 <p className="text-gray-300 mb-2 max-w-md mx-auto">{t('apiKeySelection.description') as string}</p>
                  <p className="text-xs text-gray-500 mb-6">
-                    <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-300">
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-300">
                         {t('apiKeySelection.billingInfo') as string}
                     </a>
                   </p>
-                <button 
-                    onClick={handleSelectKey}
-                    className="inline-flex items-center gap-2 px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-brand-primary hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-base-100 focus:ring-brand-secondary transition-colors"
-                >
-                    <KeyIcon className="h-5 w-5" />
-                    {t('apiKeySelection.button') as string}
-                </button>
+                <div className="flex flex-col gap-4">
+                    <input
+                        type="password"
+                        value={apiKeyInput}
+                        onChange={(e) => {
+                            setApiKeyInput(e.target.value);
+                            setKeyError('');
+                        }}
+                        onKeyDown={e => e.key === 'Enter' && handleApiKeySubmit()}
+                        placeholder={t('apiKeyInputPlaceholder') as string}
+                        className="w-full bg-base-300 border border-gray-600 rounded-lg p-3 text-sm text-gray-200"
+                        aria-label="API Key Input"
+                    />
+                    {keyError && <p className="text-red-400 text-sm">{keyError}</p>}
+                    <button 
+                        onClick={handleApiKeySubmit}
+                        disabled={isVerifyingKey}
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-brand-primary hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-base-100 focus:ring-brand-secondary transition-colors disabled:opacity-50"
+                    >
+                        <KeyIcon className="h-5 w-5" />
+                        {isVerifyingKey ? (t('validatingButton') as string) : (t('apiKeySelection.button') as string)}
+                    </button>
+                </div>
             </div>
         </div>
       )}
@@ -525,7 +559,8 @@ export default function App() {
             onProceedToVideo={handleProceedToVideoGenerator}
             affiliateCreatorState={affiliateCreatorState}
             setAffiliateCreatorState={setAffiliateCreatorState}
-            setHasSelectedKey={setHasSelectedKey}
+            apiKey={apiKey}
+            onApiKeyError={handleApiKeyError}
           />
       )}
 
@@ -533,7 +568,8 @@ export default function App() {
         <SpeechGeneratorModal
             isOpen={isSpeechModalOpen}
             onClose={() => setIsSpeechModalOpen(false)}
-            setHasSelectedKey={setHasSelectedKey}
+            apiKey={apiKey}
+            onApiKeyError={handleApiKeyError}
         />
       )}
 
@@ -541,12 +577,17 @@ export default function App() {
         <PhotoStyleCreatorModal
           isOpen={isPhotoStyleModalOpen}
           onClose={() => setIsPhotoStyleModalOpen(false)}
-          setHasSelectedKey={setHasSelectedKey}
+          apiKey={apiKey}
+          onApiKeyError={handleApiKeyError}
         />
       )}
-
-
-
+      
+      {isVideoOverlayEditorOpen && (
+        <VideoOverlayEditor 
+          isOpen={isVideoOverlayEditorOpen}
+          onClose={() => setIsVideoOverlayEditorOpen(false)}
+        />
+      )}
 
       <header className="sticky top-0 z-30 w-full border-b border-base-300 bg-base-100/90 backdrop-blur-sm">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -588,7 +629,10 @@ export default function App() {
               setIsSpeechModalOpen={setIsSpeechModalOpen}
               isPhotoStyleModalOpen={isPhotoStyleModalOpen}
               setIsPhotoStyleModalOpen={setIsPhotoStyleModalOpen}
-              setHasSelectedKey={setHasSelectedKey}
+              isVideoOverlayEditorOpen={isVideoOverlayEditorOpen}
+              setIsVideoOverlayEditorOpen={setIsVideoOverlayEditorOpen}
+              apiKey={apiKey}
+              onApiKeyError={handleApiKeyError}
            />
         )}
 
@@ -608,7 +652,8 @@ export default function App() {
                 onStateChange={setVideoGeneratorState}
                 characters={characters}
                 videoGeneratorOrigin={videoGeneratorOrigin}
-                setHasSelectedKey={setHasSelectedKey}
+                apiKey={apiKey}
+                onApiKeyError={handleApiKeyError}
               />
             </div>
 
@@ -616,7 +661,6 @@ export default function App() {
             
             {error && (
               <div className="mt-8 bg-red-900/50 border border-red-700 text-red-200 p-4 rounded-lg text-center">
-                {/* FIX: Cast result of t() to string */}
                 <h3 className="font-bold text-lg">{t('generationFailed') as string}</h3>
                 <p className="mt-1">{error}</p>
               </div>

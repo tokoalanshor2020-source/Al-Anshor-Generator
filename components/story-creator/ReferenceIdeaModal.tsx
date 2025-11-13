@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { useLocalization } from '../../i18n';
 import type { GeneratedPrompts, ReferenceFile, ReferenceIdeaState, StoredReferenceFile, VideoGeneratorOrigin } from '../../types';
@@ -13,6 +14,8 @@ interface ReferenceIdeaModalProps {
     onProceedToVideo: (prompt: string, data?: { base64: string; mimeType: string }, origin?: VideoGeneratorOrigin) => void;
     referenceIdeaState: ReferenceIdeaState;
     setReferenceIdeaState: React.Dispatch<React.SetStateAction<ReferenceIdeaState>>;
+    apiKey: string | null;
+    onApiKeyError: () => void;
 }
 
 const generateUUID = () => {
@@ -42,13 +45,12 @@ const CopyButton: React.FC<{ textToCopy: string }> = ({ textToCopy }) => {
             onClick={handleCopy} 
             className="absolute top-2 right-2 text-xs font-semibold py-1 px-2 rounded-md bg-base-100/50 hover:bg-gray-700"
         >
-            {/* FIX: Cast result of t() to string to match ReactNode type. */}
             {copied ? t('publishingKit.copiedButton') as string : t('publishingKit.copyButton') as string}
         </button>
     );
 };
 
-export const ReferenceIdeaModal: React.FC<ReferenceIdeaModalProps> = ({ isOpen, onClose, onProceedToVideo, referenceIdeaState, setReferenceIdeaState }) => {
+export const ReferenceIdeaModal: React.FC<ReferenceIdeaModalProps> = ({ isOpen, onClose, onProceedToVideo, referenceIdeaState, setReferenceIdeaState, apiKey, onApiKeyError }) => {
     const { t } = useLocalization();
     
     const [isProcessing, setIsProcessing] = useState(false);
@@ -217,15 +219,22 @@ export const ReferenceIdeaModal: React.FC<ReferenceIdeaModalProps> = ({ isOpen, 
     };
 
     const handleAnalyze = async () => {
+        if (!apiKey) {
+            onApiKeyError();
+            return;
+        }
         if (localReferenceFiles.length === 0) return;
         setIsProcessing(true);
         setError(null);
         setReferenceIdeaState(prev => ({ ...prev, results: null }));
         try {
-            const generatedPrompts = await analyzeReferences(localReferenceFiles);
+            const generatedPrompts = await analyzeReferences(localReferenceFiles, apiKey);
             setReferenceIdeaState(prev => ({ ...prev, results: generatedPrompts }));
         } catch (e) {
             const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred';
+            if (errorMessage.includes("API key not valid") || errorMessage.includes("API_KEY_INVALID")) {
+                onApiKeyError();
+            }
             setError(errorMessage);
         } finally {
             setIsProcessing(false);

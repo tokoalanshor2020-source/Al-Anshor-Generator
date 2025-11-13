@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useLocalization } from '../../i18n';
 import { MagicWandIcon } from '../icons/MagicWandIcon';
@@ -19,7 +20,6 @@ interface ScriptEditorProps {
     sceneCount: number;
     setSceneCount: (value: number) => void;
     isGenerating: boolean;
-    // FIX: Changed prop type to accept an async function.
     onGenerateStoryboard: () => Promise<void>;
     characters: Character[];
     directingSettings: DirectingSettings;
@@ -35,13 +35,15 @@ interface ScriptEditorProps {
     setIsSpeechModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
     isPhotoStyleModalOpen: boolean;
     setIsPhotoStyleModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    apiKey: string | null;
+    onApiKeyError: () => void;
 }
 
 export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     const { t } = useLocalization();
     const [isDirectorBridgeOpen, setIsDirectorBridgeOpen] = React.useState(false);
     
-    const { isReferenceIdeaModalOpen, setIsReferenceIdeaModalOpen, setIsAffiliateCreatorModalOpen, setIsSpeechModalOpen, setIsPhotoStyleModalOpen } = props;
+    const { isReferenceIdeaModalOpen, setIsReferenceIdeaModalOpen, setIsAffiliateCreatorModalOpen, setIsSpeechModalOpen, setIsPhotoStyleModalOpen, apiKey, onApiKeyError } = props;
 
     return (
         <div className="p-6">
@@ -136,7 +138,6 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
                     isOpen={isDirectorBridgeOpen}
                     onClose={() => setIsDirectorBridgeOpen(false)}
                     characters={props.characters}
-                    // Pass all the editor state and functions to the modal
                     logline={props.logline}
                     setLogline={props.setLogline}
                     scenario={props.scenario}
@@ -147,6 +148,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
                     setDirectingSettings={props.setDirectingSettings}
                     isGenerating={props.isGenerating}
                     onGenerateStoryboard={props.onGenerateStoryboard}
+                    apiKey={apiKey}
+                    onApiKeyError={onApiKeyError}
                 />
             )}
             
@@ -156,8 +159,9 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
                     onClose={() => setIsReferenceIdeaModalOpen(false)}
                     onProceedToVideo={props.onProceedToVideo}
                     referenceIdeaState={props.referenceIdeaState}
-                    // FIX: Pass the setter function `setReferenceIdeaState` instead of the state object.
                     setReferenceIdeaState={props.setReferenceIdeaState}
+                    apiKey={apiKey}
+                    onApiKeyError={onApiKeyError}
                 />
             )}
         </div>
