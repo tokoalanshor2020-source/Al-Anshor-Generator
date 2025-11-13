@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Header } from './components/Header';
 import { VideoGeneratorForm } from './components/VideoGeneratorForm';
@@ -245,7 +246,11 @@ export default function App() {
 
   useEffect(() => {
     try {
-        localStorage.setItem(VIDEO_GENERATOR_SESSION_KEY, JSON.stringify(videoGeneratorState));
+        const stateToSave = {
+            ...videoGeneratorState,
+            imageFile: null // Omit large base64 data
+        };
+        localStorage.setItem(VIDEO_GENERATOR_SESSION_KEY, JSON.stringify(stateToSave));
     } catch(e) {
         console.error("Failed to save video generator session to localStorage", e);
     }
@@ -253,7 +258,11 @@ export default function App() {
 
   useEffect(() => {
     try {
-        localStorage.setItem(REFERENCE_IDEA_SESSION_KEY, JSON.stringify(referenceIdeaState));
+        const stateToSave = {
+            ...referenceIdeaState,
+            referenceFiles: [], // Omit large base64 data
+        };
+        localStorage.setItem(REFERENCE_IDEA_SESSION_KEY, JSON.stringify(stateToSave));
     } catch(e) {
         console.error("Failed to save reference idea session to localStorage", e);
     }
@@ -261,7 +270,14 @@ export default function App() {
 
   useEffect(() => {
     try {
-        localStorage.setItem(AFFILIATE_CREATOR_SESSION_KEY, JSON.stringify(affiliateCreatorState));
+        // Create a serializable version of the state without large base64 data
+        const stateToSave = {
+            ...affiliateCreatorState,
+            productReferenceFiles: [],
+            actorReferenceFiles: [],
+            generatedImages: []
+        };
+        localStorage.setItem(AFFILIATE_CREATOR_SESSION_KEY, JSON.stringify(stateToSave));
     } catch(e) {
         console.error("Failed to save affiliate creator session to localStorage", e);
     }
