@@ -74,6 +74,14 @@ const enTranslations: Translations = {
     playerTitle: "Generation Complete!",
     downloadButton: "Download Video",
     closeButton: "Close",
+    revalidateButton: "Revalidate",
+    changeKeyButton: "Change API Key",
+    apiKeyStatus: {
+        valid: "Valid",
+        invalid: "Invalid",
+        checking: "Checking...",
+        unknown: "Unknown"
+    },
     generationFailed: "Generation Failed",
     errorBillingRequired: "This feature requires an API Key with billing enabled.",
     errorModelOverloaded: "The model is currently overloaded. The request was automatically retried but failed. Please try again in a few moments.",
@@ -716,6 +724,14 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
     playerTitle: "Pembuatan Selesai!",
     downloadButton: "Unduh Video",
     closeButton: "Tutup",
+    revalidateButton: "Validasi Ulang",
+    changeKeyButton: "Ubah Kunci API",
+    apiKeyStatus: {
+        valid: "Valid",
+        invalid: "Tidak Valid",
+        checking: "Memeriksa...",
+        unknown: "Tidak Diketahui"
+    },
     generationFailed: "Pembuatan Gagal",
     errorBillingRequired: "Fitur ini memerlukan Kunci API yang tagihannya aktif.",
     errorModelOverloaded: "Layanan sedang sibuk karena permintaan tinggi. Permintaan telah dicoba ulang secara otomatis namun gagal. Harap tunggu sejenak dan coba lagi.",

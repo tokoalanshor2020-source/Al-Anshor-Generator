@@ -5,13 +5,79 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 import { QuestionMarkCircleIcon } from './icons/QuestionMarkCircleIcon';
 import { DocumentTextIcon } from './icons/DocumentTextIcon';
 import { PlayIcon } from './icons/PlayIcon';
+import { RefreshIcon } from './icons/RefreshIcon';
+import { PencilSquareIcon } from './icons/PencilSquareIcon';
 
+
+type ApiKeyStatus = 'valid' | 'invalid' | 'checking' | 'unknown';
 
 interface HeaderProps {
     onOpenTutorialClick: () => void;
+    apiKey: string | null;
+    apiKeyStatus: ApiKeyStatus;
+    onRevalidateClick: () => void;
+    onChangeKeyClick: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenTutorialClick }) => {
+const ApiKeyStatusDisplay: React.FC<{
+    apiKey: string | null;
+    status: ApiKeyStatus;
+    onRevalidate: () => void;
+    onChangeKey: () => void;
+}> = ({ apiKey, status, onRevalidate, onChangeKey }) => {
+    const { t } = useLocalization();
+
+    if (!apiKey) {
+        return null;
+    }
+
+    const displayKey = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
+
+    const statusMap = {
+        valid: { text: t('apiKeyStatus.valid') as string, className: 'bg-green-500' },
+        invalid: { text: t('apiKeyStatus.invalid') as string, className: 'bg-red-500' },
+        checking: { text: t('apiKeyStatus.checking') as string, className: 'bg-yellow-500 animate-pulse' },
+        unknown: { text: t('apiKeyStatus.unknown') as string, className: 'bg-gray-500' }
+    };
+
+    const currentStatus = statusMap[status] || statusMap.unknown;
+    
+    const isChecking = status === 'checking';
+    const isInvalid = status === 'invalid';
+
+    return (
+        <div className="flex items-center gap-2 bg-base-300/50 px-3 py-1.5 rounded-lg border border-base-300">
+            <span className={`w-2.5 h-2.5 rounded-full ${currentStatus.className}`} title={currentStatus.text}></span>
+            <div className="flex flex-col items-start">
+              <span className="text-xs font-mono text-gray-300">{displayKey}</span>
+              <span className="text-[10px] text-gray-500 -mt-0.5">{currentStatus.text}</span>
+            </div>
+            {isInvalid ? (
+                <button 
+                    onClick={onChangeKey} 
+                    className="p-1 text-yellow-400 hover:text-white"
+                    aria-label={t('changeKeyButton') as string}
+                    title={t('changeKeyButton') as string}
+                >
+                    <PencilSquareIcon className="h-4 w-4" />
+                </button>
+            ) : (
+                <button 
+                    onClick={onRevalidate} 
+                    disabled={isChecking}
+                    className="p-1 text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-wait"
+                    aria-label={t('revalidateButton') as string}
+                    title={t('revalidateButton') as string}
+                >
+                    <RefreshIcon className={`h-4 w-4 ${isChecking ? 'animate-spin' : ''}`} />
+                </button>
+            )}
+        </div>
+    );
+};
+
+
+export const Header: React.FC<HeaderProps> = ({ onOpenTutorialClick, apiKey, apiKeyStatus, onRevalidateClick, onChangeKeyClick }) => {
   const { t } = useLocalization();
   const [isTutorialMenuOpen, setIsTutorialMenuOpen] = useState(false);
   const tutorialRef = useRef<HTMLDivElement>(null);
@@ -55,6 +121,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenTutorialClick }) => {
         </div>
       
       <div className="flex items-center gap-2 sm:gap-4">
+        <ApiKeyStatusDisplay 
+            apiKey={apiKey}
+            status={apiKeyStatus}
+            onRevalidate={onRevalidateClick}
+            onChangeKey={onChangeKeyClick}
+        />
         <LanguageSwitcher />
 
         <div className="relative" ref={tutorialRef}>

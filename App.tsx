@@ -27,6 +27,7 @@ const API_KEY_STORAGE_KEY = 'gemini-generator-api-key';
 
 
 type AppView = 'story-creator' | 'video-generator';
+type ApiKeyStatus = 'valid' | 'invalid' | 'checking' | 'unknown';
 
 const initialDirectingSettings: DirectingSettings = {
     sceneStyleSet: 'standard_cinematic',
@@ -69,6 +70,7 @@ export default function App() {
   const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
   
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus>('unknown');
   const [isApiKeyPromptOpen, setIsApiKeyPromptOpen] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
@@ -82,22 +84,49 @@ export default function App() {
 
     useEffect(() => {
         const checkStoredApiKey = async () => {
+            setApiKeyStatus('checking');
             const storedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
             if (storedKey) {
                 const isValid = await validateApiKey(storedKey);
                 if (isValid) {
                     setApiKey(storedKey);
+                    setApiKeyStatus('valid');
                 } else {
                     localStorage.removeItem(API_KEY_STORAGE_KEY);
                     setIsApiKeyPromptOpen(true);
+                    setApiKeyStatus('invalid');
                 }
             } else {
                 setIsApiKeyPromptOpen(true);
+                setApiKeyStatus('invalid');
             }
             setIsInitialLoading(false);
         };
         checkStoredApiKey();
     }, []);
+    
+    const handleApiKeyError = useCallback(() => {
+        setApiKey(null);
+        localStorage.removeItem(API_KEY_STORAGE_KEY);
+        setIsApiKeyPromptOpen(true);
+        setApiKeyStatus('invalid');
+    }, []);
+    
+    const handleRevalidateKey = useCallback(async () => {
+        if (!apiKey) {
+            handleApiKeyError();
+            return;
+        }
+        setApiKeyStatus('checking');
+        setError(null); // Clear previous errors
+        const isValid = await validateApiKey(apiKey);
+        if (isValid) {
+            setApiKeyStatus('valid');
+        } else {
+            setApiKeyStatus('invalid');
+            handleApiKeyError(); // If it fails revalidation, force prompt
+        }
+    }, [apiKey, handleApiKeyError]);
 
     const handleApiKeySubmit = async () => {
         if (!apiKeyInput.trim()) {
@@ -110,19 +139,15 @@ export default function App() {
         if (isValid) {
             localStorage.setItem(API_KEY_STORAGE_KEY, apiKeyInput);
             setApiKey(apiKeyInput);
+            setApiKeyStatus('valid');
             setIsApiKeyPromptOpen(false);
             setError(null); // Clear previous API key errors from main view
         } else {
+            setApiKeyStatus('invalid');
             setKeyError('Invalid API key. Please check the key and try again.');
         }
         setIsVerifyingKey(false);
     };
-
-    const handleApiKeyError = useCallback(() => {
-        setApiKey(null);
-        localStorage.removeItem(API_KEY_STORAGE_KEY);
-        setIsApiKeyPromptOpen(true);
-    }, []);
 
   const [view, setView] = useState<AppView>(() => {
     try {
@@ -585,6 +610,10 @@ export default function App() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <Header 
               onOpenTutorialClick={() => setIsTutorialOpen(true)}
+              apiKey={apiKey}
+              apiKeyStatus={apiKeyStatus}
+              onRevalidateClick={handleRevalidateKey}
+              onChangeKeyClick={handleApiKeyError}
             />
           </div>
       </header>
