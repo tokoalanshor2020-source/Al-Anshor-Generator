@@ -37,11 +37,11 @@ You should see output similar to this, indicating the server is running:
 ```
 Open your web browser and go to **http://localhost:5173/**.
 
-### Step 5: Configure API Keys
-The first time you run the app, you will be prompted to add your Google AI API Keys. 
-1.  Click the **Settings** button (cog icon) in the header.
-2.  Add your keys for both **"Story"** and **"Video & Thumbnail"** functionalities.
-3.  The app is now ready to use!
+### Step 5: Configure API Key
+The first time you run the app, you will be prompted to enter your Google AI API Key.
+1. A modal will appear asking for your key. Paste your Google AI API Key into the input field.
+2. Click "Validate & Save Key". The application will verify the key.
+3. Once validated, the key is saved in your browser's local storage, and you won't need to enter it again. The app is now ready to use!
 
 ---
 
@@ -160,6 +160,13 @@ sudo certbot --nginx -d your_domain -d www.your_domain
 Follow the prompts. Certbot will automatically update your Nginx configuration to handle HTTPS.
 
 Your application should now be live and accessible at `https://your_domain`.
+
+### Step 7: API Key Configuration on Live Site
+The application requires a Google AI API Key to function. Unlike a typical server-side setup, you don't configure this on the server.
+
+- **Browser-Based Storage:** The API key is stored in each user's individual browser (`localStorage`).
+- **First-Time Prompt:** When a user visits your domain for the first time, they will be prompted by the application to enter their own Google AI API Key.
+- **No Server-Side Key:** You do not need to set up any environment variables or server-side configurations for the API key.
 
 ### How to Update the Project on VPS
 To update the application with the latest changes from GitHub, run these commands:

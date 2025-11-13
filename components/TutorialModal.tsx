@@ -6,6 +6,7 @@ import { PencilSquareIcon } from './icons/PencilSquareIcon';
 import { FilmIcon } from './icons/FilmIcon';
 import { ShoppingCartIcon } from './icons/ShoppingCartIcon';
 import { SpeakerWaveIcon } from './icons/SpeakerWaveIcon';
+import { PhotoIcon } from './icons/PhotoIcon';
 
 interface TutorialModalProps {
     onClose: () => void;
@@ -30,6 +31,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ onClose }) => {
     const workflow2 = tutorial.workflow2 as any;
     const workflow3 = tutorial.workflow3 as any;
     const workflow4 = tutorial.workflow4 as any;
+    const workflow5 = tutorial.workflow5 as any;
 
     useEffect(() => {
         document.body.classList.add('modal-open');
@@ -88,6 +90,16 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ onClose }) => {
                              <li dangerouslySetInnerHTML={{ __html: workflow4.step2 }} />
                              <li dangerouslySetInnerHTML={{ __html: workflow4.step3 }} />
                              <li dangerouslySetInnerHTML={{ __html: workflow4.step4 }} />
+                        </ul>
+                    </Section>
+
+                    <Section title={workflow5.title} icon={<PhotoIcon className="h-6 w-6 text-amber-300" />}>
+                        <p>{workflow5.intro}</p>
+                        <ul>
+                             <li dangerouslySetInnerHTML={{ __html: workflow5.step1 }} />
+                             <li dangerouslySetInnerHTML={{ __html: workflow5.step2 }} />
+                             <li dangerouslySetInnerHTML={{ __html: workflow5.step3 }} />
+                             <li dangerouslySetInnerHTML={{ __html: workflow5.step4 }} />
                         </ul>
                     </Section>
                 </div>

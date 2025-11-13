@@ -1,4 +1,5 @@
 
+
 import React, { createContext, useState, useContext, useEffect, useCallback, PropsWithChildren } from 'react';
 
 const LANGUAGE_STORAGE_key = 'veo-app-language';
@@ -124,32 +125,6 @@ const enTranslations: Translations = {
       videoPromptLabel: "Video Prompt (Visuals)",
       audioPromptLabel: "Audio Prompt (Narration & Sound)",
     },
-    videoOverlayEditor: {
-      title: "Video Overlay Editor",
-      uploadVideo: {
-        title: "1. Upload Video",
-        button: "Choose Video File"
-      },
-      addOverlays: {
-        title: "2. Add Overlays",
-        addText: "Add Text Layer",
-        addImage: "Add Image Layer"
-      },
-      layers: {
-        title: "3. Layers",
-        imageLayer: "Image Layer"
-      },
-      render: {
-        title: "4. Render Video",
-        button: "Render Video",
-        renderingButton: "Rendering... ({progress}%)",
-        completeTitle: "Render Complete!",
-        downloadButton: "Download Video"
-      },
-      placeholder: {
-        upload: "Upload a video to begin editing."
-      }
-    },
     tutorial: {
         title: "Application Tutorial",
         textTutorial: "Text Tutorial",
@@ -185,6 +160,14 @@ const enTranslations: Translations = {
             step2: "<strong>Step 2: Build Your Script.</strong> Write your text in the 'Script Builder'. For conversations, switch to 'Multi-speaker audio', define your speakers, and add dialogue boxes as needed. The 'Style Instructions' will dynamically suggest tones based on your text.",
             step3: "<strong>Step 3: Configure Voices.</strong> In the 'Run Settings', select a voice for each speaker. Click the speaker icon next to the voice selection to hear a preview.",
             step4: "<strong>Step 4: Generate Audio.</strong> Click 'Run' to generate the audio. An audio player will appear, allowing you to listen to the result and download it as a WAV file."
+        },
+        workflow5: {
+            title: "Workflow 5: Photo Style Creator",
+            intro: "A powerful tool to generate a series of highly stylized images for various purposes, from character portraits to professional product shots and eye-catching thumbnails.",
+            step1: "<strong>Step 1: Open the Tool.</strong> From the main editor screen, click 'Create Photo Style' to open the creator modal.",
+            step2: "<strong>Step 2: Choose Photo Type.</strong> Select your goal: 'Artist/Model' for character concepts, 'Product' for e-commerce shots, or 'Thumbnail' for YouTube content.",
+            step3: "<strong>Step 3: Define Subject & Style.</strong> Upload reference images/videos or write detailed text descriptions. Use the 'AI Assistant' to auto-fill details or get recommendations. Fine-tune every aspect from facial expressions and lighting to background colors.",
+            step4: "<strong>Step 4: Generate & Download.</strong> Adjust the 'Output Settings' like the number of images and aspect ratio. Click 'Generate' to see your creations. For thumbnails, you can also use the advanced 'Music' mode to design dynamic playlist graphics."
         },
         closeButton: "Got it, let's create!"
     },
@@ -223,7 +206,6 @@ const enTranslations: Translations = {
       ideaWithReferenceDescription: "Upload videos or photos for the AI to analyze into a story idea and cinematic prompt.",
       openReferenceIdea: "Analyze References",
       createAffiliateVideo: "Create Affiliate Video",
-      videoOverlayEditor: "Video Overlay Editor",
       storyTitle: "Story Title:",
       storyTitlePlaceholder: "e.g., Rino the Red Racing Car and Goro the Brave Monster Truck",
       storyScript: "Story Script / Summary:",
@@ -785,32 +767,6 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
       videoPromptLabel: "Prompt Video (Visual)",
       audioPromptLabel: "Prompt Audio (Narasi & Suara)",
     },
-    videoOverlayEditor: {
-      title: "Editor Overlay Video",
-      uploadVideo: {
-        title: "1. Unggah Video",
-        button: "Pilih File Video"
-      },
-      addOverlays: {
-        title: "2. Tambah Lapisan",
-        addText: "Tambah Lapisan Teks",
-        addImage: "Tambah Lapisan Gambar"
-      },
-      layers: {
-        title: "3. Lapisan",
-        imageLayer: "Lapisan Gambar"
-      },
-      render: {
-        title: "4. Render Video",
-        button: "Render Video",
-        renderingButton: "Merender... ({progress}%)",
-        completeTitle: "Render Selesai!",
-        downloadButton: "Unduh Video"
-      },
-      placeholder: {
-        upload: "Unggah video untuk memulai penyuntingan."
-      }
-    },
     tutorial: {
         title: "Tutorial Aplikasi",
         textTutorial: "Tutorial Dengan Teks",
@@ -846,6 +802,14 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
             step2: "<strong>Langkah 2: Bangun Naskah Anda.</strong> Tulis teks Anda di 'Pembuat Naskah'. Untuk percakapan, beralih ke 'Audio multi-pembicara', tentukan pembicara Anda, dan tambahkan kotak dialog sesuai kebutuhan. 'Instruksi Gaya' akan secara dinamis menyarankan nada berdasarkan teks Anda.",
             step3: "<strong>Langkah 3: Konfigurasi Suara.</strong> Di 'Pengaturan Eksekusi', pilih suara untuk setiap pembicara. Klik ikon speaker di sebelah pilihan suara untuk mendengar pratinjau.",
             step4: "<strong>Langkah 4: Hasilkan Audio.</strong> Klik 'Jalankan' untuk menghasilkan audio. Pemutar audio akan muncul, memungkinkan Anda mendengarkan hasilnya dan mengunduhnya sebagai file WAV."
+        },
+        workflow5: {
+            title: "Alur Kerja 5: Buat Gaya Foto",
+            intro: "Alat canggih untuk menghasilkan serangkaian gambar bergaya untuk berbagai keperluan, mulai dari potret karakter, foto produk profesional, hingga thumbnail yang menarik.",
+            step1: "<strong>Langkah 1: Buka Alat.</strong> Dari layar editor utama, klik 'Buat Gaya Foto' untuk membuka jendela pembuat.",
+            step2: "<strong>Langkah 2: Pilih Tipe Foto.</strong> Pilih tujuan Anda: 'Artis/Model' untuk konsep karakter, 'Produk' untuk foto e-commerce, atau 'Thumbnail' untuk konten YouTube.",
+            step3: "<strong>Langkah 3: Tentukan Subjek & Gaya.</strong> Unggah gambar/video referensi atau tulis deskripsi teks yang rinci. Gunakan 'Asisten AI' untuk mengisi detail secara otomatis atau mendapatkan rekomendasi. Sesuaikan setiap aspek mulai dari ekspresi wajah dan pencahayaan hingga warna latar belakang.",
+            step4: "<strong>Langkah 4: Hasilkan & Unduh.</strong> Atur 'Pengaturan Output' seperti jumlah gambar dan rasio aspek. Klik 'Hasilkan' untuk melihat kreasi Anda. Untuk thumbnail, Anda juga bisa menggunakan mode 'Musik' canggih untuk merancang grafis playlist yang dinamis."
         },
         closeButton: "Mengerti, ayo buat!"
     },
@@ -884,7 +848,6 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
       ideaWithReferenceDescription: "Unggah video atau foto untuk dianalisa oleh AI menjadi ide cerita dan prompt sinematik.",
       openReferenceIdea: "Analisa Referensi",
       createAffiliateVideo: "Buat Video Afiliasi",
-      videoOverlayEditor: "Editor Overlay Video",
       storyTitle: "Judul Cerita:",
       storyTitlePlaceholder: "Contoh: Rino si Mobil Balap Merah dan Goro si Truk Monster Pemberani",
       storyScript: "Naskah Cerita / Ringkasan:",
@@ -1146,7 +1109,7 @@ const idTranslations: Translations = mergeDeep(JSON.parse(JSON.stringify(enTrans
         poses: {
             relaxed: "Santai",
             formal: "Formal",
-            dynamic: "Dinamis",
+            dinamis: "Dinamis",
             candid: "Candid"
         },
       },

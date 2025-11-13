@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Header } from './components/Header';
 import { VideoGeneratorForm } from './components/VideoGeneratorForm';
@@ -14,7 +15,6 @@ import { SpeechGeneratorModal } from './components/speech-generator/SpeechGenera
 import { PhotoStyleCreatorModal } from './components/photo-style-creator/PhotoStyleCreatorModal';
 import { KeyIcon } from './components/icons/KeyIcon';
 import { validateApiKey } from './services/apiKeyService';
-import { VideoOverlayEditor } from './components/video-overlay-editor/VideoOverlayEditor';
 
 
 const CHARACTERS_STORAGE_KEY = 'gemini-story-characters';
@@ -229,7 +229,6 @@ export default function App() {
   const [isAffiliateCreatorModalOpen, setIsAffiliateCreatorModalOpen] = useState(false);
   const [isSpeechModalOpen, setIsSpeechModalOpen] = useState(false);
   const [isPhotoStyleModalOpen, setIsPhotoStyleModalOpen] = useState(false);
-  const [isVideoOverlayEditorOpen, setIsVideoOverlayEditorOpen] = useState(false);
 
 
   useEffect(() => {
@@ -581,13 +580,6 @@ export default function App() {
           onApiKeyError={handleApiKeyError}
         />
       )}
-      
-      {isVideoOverlayEditorOpen && (
-        <VideoOverlayEditor 
-          isOpen={isVideoOverlayEditorOpen}
-          onClose={() => setIsVideoOverlayEditorOpen(false)}
-        />
-      )}
 
       <header className="sticky top-0 z-30 w-full border-b border-base-300 bg-base-100/90 backdrop-blur-sm">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -629,8 +621,6 @@ export default function App() {
               setIsSpeechModalOpen={setIsSpeechModalOpen}
               isPhotoStyleModalOpen={isPhotoStyleModalOpen}
               setIsPhotoStyleModalOpen={setIsPhotoStyleModalOpen}
-              isVideoOverlayEditorOpen={isVideoOverlayEditorOpen}
-              setIsVideoOverlayEditorOpen={setIsVideoOverlayEditorOpen}
               apiKey={apiKey}
               onApiKeyError={handleApiKeyError}
            />
