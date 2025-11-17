@@ -72,12 +72,18 @@ export const PublishingKitView: React.FC<PublishingKitViewProps> = ({ kitData, c
     const [promptSource, setPromptSource] = useState<'simple' | 'advanced'>('simple');
 
     useEffect(() => {
-        const concept = kitData.thumbnail_concepts[0];
+        const concept = kitData.thumbnail_concepts?.[0];
+        if (!concept) {
+            setError(t('publishingKit.errorConceptMissing') as string);
+            setAssets({});
+            return;
+        }
+
         const initialAssets: { [key: string]: LocalizedAsset } = {
             id: {
-                title: kitData.youtube_title_id,
-                description: kitData.youtube_description_id,
-                tags: kitData.youtube_tags_id,
+                title: kitData.youtube_title_id || '',
+                description: kitData.youtube_description_id || '',
+                tags: kitData.youtube_tags_id || [],
                 thumbnail_concept: {
                     concept_title: concept.concept_title_id,
                     concept_description: concept.concept_description_id,
@@ -87,9 +93,9 @@ export const PublishingKitView: React.FC<PublishingKitViewProps> = ({ kitData, c
                 }
             },
             en: {
-                title: kitData.youtube_title_en,
-                description: kitData.youtube_description_en,
-                tags: kitData.youtube_tags_en,
+                title: kitData.youtube_title_en || '',
+                description: kitData.youtube_description_en || '',
+                tags: kitData.youtube_tags_en || [],
                 thumbnail_concept: {
                     concept_title: concept.concept_title_en,
                     concept_description: concept.concept_description_en,
@@ -107,7 +113,7 @@ export const PublishingKitView: React.FC<PublishingKitViewProps> = ({ kitData, c
         setThumbImageUrl(null);
         setAspectRatio('16:9');
         setIsGeneratingThumb(false);
-    }, [kitData, language]);
+    }, [kitData, language, t]);
     
      useEffect(() => {
         const handler = setTimeout(() => {

@@ -174,7 +174,7 @@ export const generateBlueprintPrompt = async (
     settings: DirectingSettings,
     apiKey: string
 ): Promise<string> => {
-    const characterProfiles = scene.character_actions
+    const characterProfiles = (scene.character_actions || [])
     .map(action => {
         const character = characters.find(c => c.consistency_key === action.consistency_key);
         if (!character) return null;
@@ -276,7 +276,7 @@ export const generateCinematicPrompt = async (
     settings: DirectingSettings,
     apiKey: string
 ): Promise<string> => {
-     const characterProfiles = scene.character_actions
+     const characterProfiles = (scene.character_actions || [])
     .map(action => {
         const character = characters.find(c => c.consistency_key === action.consistency_key);
         if (!character) return `The character ${action.character_name} (${action.consistency_key}) is performing the action: ${action.action_description}.`;
