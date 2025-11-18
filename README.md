@@ -12,7 +12,7 @@ Follow these steps to run the application on your own computer.
 
 ### Step 1: Download and Extract
 Download the project ZIP file from the repository and extract it to a location of your choice (e.g., `D:\Projects`).
-[Download Link](https://github.com/tokoalanshor2020-source/AL-ANSHOR-VEO-GENERATOR/archive/refs/heads/main.zip)
+[Download Link](https://github.com/tokoalanshor2020-source/Al-Anshor-Generator/archive/refs/heads/main.zip)
 
 ### Step 2: Open Command Prompt
 Navigate into the extracted project folder. In the file explorer's address bar, type `cmd` and press Enter. This will open a command prompt in the correct directory.
@@ -83,7 +83,7 @@ sudo mkdir -p /var/www
 cd /var/www
 
 # Clone the repository
-sudo git clone https://github.com/tokoalanshor2020-source/AL-ANSHOR-VEO-GENERATOR.git alanshor
+sudo git clone https://github.com/tokoalanshor2020-source/Al-Anshor-Generator.git alanshor
 cd alanshor
 
 # Install project dependencies
